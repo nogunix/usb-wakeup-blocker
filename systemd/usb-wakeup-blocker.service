@@ -1,0 +1,12 @@
+[Unit]
+Description=Disable USB wakeups
+After=multi-user.target
+
+[Service] 
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=-/etc/usb-wakeup-blocker.conf
+ExecStart=/usr/local/bin/usb-wakeup-blocker.sh $ARGS
+
+[Install] 
+WantedBy=multi-user.target
