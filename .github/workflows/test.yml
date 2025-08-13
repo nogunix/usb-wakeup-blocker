@@ -9,7 +9,6 @@ jobs:
   bats:
     runs-on: ubuntu-latest
     env:
-      # テストでroot不要にする（スクリプト側でこの環境変数を見てrequire_rootをスキップ）
       SKIP_ROOT_CHECK: "1"
     steps:
       - name: Checkout (with submodules)
@@ -17,13 +16,23 @@ jobs:
         with:
           submodules: true
 
-      # 念のため実行属性を付与（既に付いていても無害）
       - name: Ensure executable bits
         run: chmod +x bin/usb-wakeup-blocker.sh test/run-tests.sh
 
-      # まれに必要になることがあるので保険として
       - name: Init submodules (recursive)
         run: git submodule update --init --recursive
 
       - name: Run Bats tests (no sudo)
         run: ./test/run-tests.sh
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck
+        run: shellcheck bin/usb-wakeup-blocker.sh
