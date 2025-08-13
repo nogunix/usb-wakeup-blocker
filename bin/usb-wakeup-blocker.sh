@@ -22,35 +22,7 @@ get_device_info() {
   fi
 
   if [[ ! -f "$device_dir/busnum" || ! -f "$device_dir/devnum" ]]; then
-    DEVICE_INFO_CACHE["$device_dir"]="false false (error: no bus/dev nu    # ...existing code...
-    while getopts "amcdvw:p:" opt; do
-      case $opt in
-        a) MODE="all" ;;
-        m) MODE="mouse" ;;
-        c) MODE="combo" ;;
-        d) DRY_RUN=true ;;
-        v) VERBOSE=true ;;
-        w) WHITELIST_PATTERNS+=("$OPTARG") ;;
-        p) ACPI_WHITELIST_PATTERNS+=("$OPTARG") ;;
-        \?)
-          echo "Usage: $0 [OPTIONS]"
-          echo
-          echo "Options:"
-          echo "  -a           Block all USB devices from waking the system."
-          echo "  -m           Block only mice (default)."
-          echo "  -c           Block both mice and keyboards."
-          echo "  -w <name>    Whitelist USB device by product name (can be used multiple times)."
-          echo "  -p <name>    Whitelist ACPI device by name (can be used multiple times)."
-          echo "  -d           Dry run (show actions but do not apply changes)."
-          echo "  -v           Verbose output."
-          echo
-          echo "Examples:"
-          echo "  $0 -c -w \"My Keyboard\" -p \"LID\""
-          exit 1
-          ;;
-      esac
-    done
-    # ...existingm)"
+    DEVICE_INFO_CACHE["$device_dir"]="false false (error: no bus/dev num)"
     echo "${DEVICE_INFO_CACHE[$device_dir]}"
     return
   fi
@@ -104,7 +76,19 @@ while getopts "amcdvw:p:" opt; do
     w) WHITELIST_PATTERNS+=("$OPTARG") ;;
     p) ACPI_WHITELIST_PATTERNS+=("$OPTARG") ;;
     \?)
-      echo "Usage: $0 [-a | -m | -c] [-w <usb_product>] [-p <acpi_device>] [-d] [-v]" >&2
+      echo "Usage: $0 [OPTIONS]"
+      echo
+      echo "Options:"
+      echo "  -a           Block all USB devices from waking the system."
+      echo "  -m           Block only mice (default)."
+      echo "  -c           Block both mice and keyboards."
+      echo "  -w <name>    Whitelist USB device by product name (can be used multiple times)."
+      echo "  -p <name>    Whitelist ACPI device by name (can be used multiple times)."
+      echo "  -d           Dry run (show actions but do not apply changes)."
+      echo "  -v           Verbose output."
+      echo
+      echo "Examples:"
+      echo "  $0 -c -w \"My Keyboard\" -p \"LID\""
       exit 1
       ;;
   esac
