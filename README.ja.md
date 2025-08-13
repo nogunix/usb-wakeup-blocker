@@ -1,9 +1,9 @@
 # usb-wakeup-blocker
 
-[![GitHub last commit](https://img.shields.io/github/last-commit/mnoguchi/usb-wakeup-blocker)](https://github.com/mnoguchi/usb-wakeup-blocker/commits/main)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/mnoguchi/usb-wakeup-blocker/blob/main/LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/mnoguchi/usb-wakeup-blocker)](https://github.com/nogunix/usb-wakeup-blocker/commits/main)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nogunix/usb-wakeup-blocker/blob/main/LICENSE)
 
-English | 日本語
+[English](./README.md) | [日本語](./README.ja.md)
 
 コンピュータをスリープから復帰させることができるUSBおよびACPIデバイスを、正確に制御するためのスクリプトとsystemdサービスです。
 
