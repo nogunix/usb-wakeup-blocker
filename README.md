@@ -46,6 +46,22 @@ The script will:
 
 **Note**: The service is **not** enabled or started automatically. You must do this manually after configuration.
 
+## Simple Usage: No Configuration File Editing
+
+For most users, you do **not** need to edit the configuration file.  
+Just install and start the service:
+
+```bash
+sudo ./install.sh
+sudo systemctl enable --now usb-wakeup-blocker.service
+```
+
+**Default behavior:**  
+- Only mice will be blocked from waking the system.
+- Keyboards, lid switches, and power buttons will continue to work as usual.
+
+If you want to change which devices are blocked or allowed, you can edit `/etc/usb-wakeup-blocker.conf` manually.
+
 ## Configuration
 
 After installation, all configuration is done by editing `/etc/usb-wakeup-blocker.conf`.
@@ -76,6 +92,7 @@ If you are setting up the service for the first time, use the following command 
 ```bash
 sudo systemctl enable --now usb-wakeup-blocker.service
 ```
+
 
 ## Uninstallation
 
