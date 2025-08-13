@@ -1,5 +1,7 @@
 # Flexible Wakeup Control for Linux
 
+[English](./README.md) | [日本語](./README.ja.md)
+
 A script and systemd service to precisely control which USB and ACPI devices can wake your computer from sleep.
 
 ## Overview 
@@ -96,4 +98,4 @@ This will stop and disable the service, and remove all files created during inst
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
