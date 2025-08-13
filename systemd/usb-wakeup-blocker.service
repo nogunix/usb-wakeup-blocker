@@ -1,12 +1,12 @@
 [Unit]
 Description=Disable USB wakeups
-After=multi-user.target
+After=systemd-udev-settle.service
+Wants=systemd-udev-settle.service
 
-[Service] 
+[Service]
 Type=oneshot
+ExecStart=/usr/local/bin/usb-wakeup-blocker.sh -m -v
 RemainAfterExit=yes
-EnvironmentFile=-/etc/usb-wakeup-blocker.conf
-ExecStart=/usr/local/bin/usb-wakeup-blocker.sh $ARGS
 
-[Install] 
+[Install]
 WantedBy=multi-user.target
