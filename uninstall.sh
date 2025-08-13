@@ -13,3 +13,5 @@ sudo rm -f "$BIN"
 sudo rm -f "$CONFIG_FILE"
 
 echo "Uninstalled."
+echo "A reboot is recommended to fully revert changes to wakeup settings."
+
