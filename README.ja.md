@@ -242,9 +242,8 @@ ACPI Device: GPP3       | Current: enabled  | Desired: disabled | Action: Toggli
 *   **`Current`**: 現在のウェイクアップ状態です（`enabled` または `disabled`）。
 *   **`Desired`**: ホワイトリストに基づいた望ましい状態です。ホワイトリスト内のデバイスは `enabled`、それ以外は `disabled` になります。
 *   **`Action`**:
-    *   `disable`: デバイスがホワイトリストに含まれていないため、ウェイクアップ機能が無効化されました。
-    *   `enable (whitelisted)`: デバイスがホワイトリストに含まれていたため、ウェイクアップ機能が有効化されました。
-    *   `ignore`: デバイスのウェイクアップ設定が既に望ましい状態だったため、変更は行われませんでした。
+    *   `Toggling state`: 現在の状態が望ましい状態と一致しなかったため、スクリプトが状態を変更しました。
+    *   `No change needed`: デバイスは既に望ましい状態です。
 
 ## 開発とテスト
 
