@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# プロジェクトのルートディレクトリに移動
+# Change to the project root directory
 cd "$(dirname "$0")/.."
 
-# bats-coreの実行ファイルを指定してテストを実行
+# Run tests using the bats-core executable
 ./test/bats-core/bin/bats test/test.bats
 
 echo "All tests passed!"

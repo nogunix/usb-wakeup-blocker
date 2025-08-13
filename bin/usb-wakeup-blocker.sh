@@ -183,7 +183,7 @@ process_acpi_devices() {
         return
     fi
 
-    # ShellCheck SC2034 対策: 未使用列は "_" に読み捨て
+    # ShellCheck SC2034: Read unused columns into _ to discard them.
     while read -r device _ status _; do
         status=${status#\*}
         local is_whitelisted=false
