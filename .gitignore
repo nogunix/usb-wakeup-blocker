@@ -1,3 +1,4 @@
 test/bats-core/
 test/bats-support/
 test/bats-assert/
+.gitmodules.bak
