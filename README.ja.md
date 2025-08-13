@@ -5,119 +5,180 @@
 
 [English](./README.md) | [日本語](./README.ja.md)
 
-コンピュータをスリープから復帰させるUSBおよびACPIデバイスを、正確に制御するためのスクリプトと systemd サービスです。
+お使いのコンピューターで、どのUSBデバイスやACPIデバイスがスリープ解除できるかを正確に制御するためのスクリプトとsystemdサービスです。
 
 ## 概要
 
-多くの Linux システムでは、初期設定で多くのデバイスがスリープからの復帰を許可されています。これにより、感度の高いマウスのわずかな動きや USB 電源の変動で、意図せずコンピュータが復帰してしまうことがあります。
+多くのLinuxシステムでは、デフォルトで多くのデバイスがシステムをスリープから復帰させることができます。しかし、敏感なマウスやUSBの一時的な電力変動によって意図せずPCが起動してしまうのは煩わしいものです。
 
-このプロジェクトは **ホワイトリスト方式** を採用し、スリープからの復帰を「許可する」デバイスのみを明示的に指定します。それ以外のデバイスは自動的に復帰が無効化されます。
+このプロジェクトは、**ホワイトリスト方式**でその問題を解決します。どのデバイスを無効にするか推測する代わりに、どのデバイスがシステムをスリープ解除**できる**かを明示的に定義します。それ以外のすべてのデバイスは自動的に無効化されます。
 
-### デフォルトの挙動
+### デフォルトの動作
 
-設定を行わない場合、サービスは「マウスのみ」スリープ復帰を防止します。  
-キーボードやPCの蓋、電源ボタンなど他のデバイスは従来通り動作します。  
-これは、最も一般的な「マウスによる誤復帰防止」に適した初期設定です。
+設定を一切行わない場合、このサービスは**マウス**によるスリープ復帰のみをブロックします。キーボード、PCの蓋、電源ボタンなど、他のすべてのデバイスは以前と同様に機能します。これは、敏感なマウスによる偶発的なスリープ解除を防ぐという、最も一般的なユースケースに対応する賢明なデフォルト設定です。
 
 ## 特徴
 
-- **ホワイトリスト制御**: 復帰を許可するデバイスを明示的に指定できます
-- **USB・ACPI両対応**: USB周辺機器（マウス・キーボード）だけでなく、内蔵キーボードや電源ボタン、PCの蓋（リッド）などのACPIデバイスも制御可能
-- **設定ファイル管理**: `/etc/usb-wakeup-blocker.conf` で簡単に設定
-- **systemd連携**: 起動時に自動で設定を適用
-- **診断機能**: 詳細表示（`-v`）やドライラン（`-d`）モードでトラブルシュートも容易
+- **ホワイトリスト制御**: どのデバイスがシステムをスリープ解除できるかを明示的に定義します。
+- **USBとACPIの両方を管理**: USB周辺機器（マウス、キーボード）だけでなく、内蔵のACPIデバイス（内蔵キーボード、電源ボタン、蓋など）も制御します。
+- **設定ファイル**: すべての設定はシンプルな設定ファイル（`/etc/usb-wakeup-blocker.conf`）で管理します。
+- **Systemd連携**: `systemd`サービスとして動作し、起動時に設定を自動的に適用します。
+- **診断機能**: 詳細表示（`-v`）とドライラン（`-d`）モードを搭載し、トラブルシューティングを容易にします。
 
 ## 要件
 
-- `systemd` を利用する Linux システム
-- `lsusb` コマンド（通常は `usbutils` パッケージに含まれます）
+- `systemd` を使用するLinuxシステム
+- `lsusb` コマンド（通常は `usbutils` パッケージで提供されます）
 
 ## インストール
 
 ```bash
-# 1. リポジトリをクローン
+# 1. リポジトリをクローンします
 git clone https://github.com/nogunix/usb-wakeup-blocker.git
 cd usb-wakeup-blocker
 
-# 2. インストールスクリプトを実行
-# インストールスクリプトは、ファイルのコピーとサービスの管理のために管理者権限を必要とします。
+# 2. インストールスクリプトを実行します
+# ファイルのコピーやサービスの管理には管理者権限が必要です
 sudo ./install.sh
 ```
 
-このスクリプトは以下を実行します：
-1. メインスクリプトを `/usr/local/bin/` にコピー
-2. systemd サービスファイルを `/etc/systemd/system/` にコピー
-3. デフォルト設定ファイルを `/etc/usb-wakeup-blocker.conf` にコピー（未作成の場合のみ）
-4. systemd デーモンをリロード
+このスクリプトは以下の処理を行います:
+1.  メインスクリプトを `/usr/local/bin/` にコピーします。
+2.  systemdサービスファイルを `/etc/systemd/system/` にコピーします。
+3.  デフォルトの設定ファイルを `/etc/usb-wakeup-blocker.conf` にコピーします（ファイルがまだ存在しない場合）。
+4.  systemdデーモンをリロードします。
 
-**注意**: サービスは自動では有効化・起動されません。設定後に手動で実行してください。
+**注意**: サービスは自動的には有効化・起動されません。設定後に手動で有効化する必要があります。
 
-## シンプルな使い方（設定ファイル編集不要）
+## 簡単な使い方：設定ファイル編集なし
 
-ほとんどのユーザーは設定ファイルを編集する必要はありません。  
-インストール後（どちらの方法でも）、以下のコマンドでサービスを有効化・起動するだけです。
+ほとんどのユーザーは、設定ファイルを編集する必要はありません。  
+サービスをインストールして起動するだけです。
 
 ```bash
 sudo systemctl enable --now usb-wakeup-blocker.service
 ```
 
-**デフォルト動作:**  
-- マウスのみがスリープ復帰をブロックされます。
-- キーボードやPCの蓋、電源ボタンなどは従来通り動作します。
+**デフォルトの動作:**
+- マウスによるスリープ復帰のみがブロックされます。
+- キーボード、蓋の開閉、電源ボタンは通常通り機能します。
 
-もしブロック・許可するデバイスを変更したい場合は、後から `/etc/usb-wakeup-blocker.conf` を編集してください。
+ブロックまたは許可するデバイスを変更したい場合は、`/etc/usb-wakeup-blocker.conf` を手動で編集してください。
 
 ## 設定
 
-インストール後は `/etc/usb-wakeup-blocker.conf` を編集して設定します。
+設定は `/etc/usb-wakeup-blocker.conf` ファイルで行います。このファイル内の `ARGS` 変数に、スクリプトに渡すコマンドライン引数を記述します。
 
-1. **デバイス名の確認**  
-   詳細表示モードでスクリプトを実行し、利用可能なUSB・ACPIデバイスを確認します。
-   ```bash
-   sudo /usr/local/bin/usb-wakeup-blocker.sh -v
-   ```
-   出力から、許可したいUSBキーボードの `Product` 名や、内蔵デバイスの `ACPI Device` 名（例: `GPP3`, `LID`）を探します。
+### ステップ1: デバイス名を確認する
 
-2. **設定ファイルの編集**  
-   ```bash
-   sudo nano /etc/usb-wakeup-blocker.conf
-   ```
+まず、`-v`（詳細表示）オプションを使って、デバイスの正確な名前を確認します。
 
-3. **`ARGS` 変数の更新**  
-   `-w`（USB用）や `-p`（ACPI用）フラグで許可したいデバイスを追加します。
-   ```ini
-   # 例: 特定のUSBキーボードとPCの蓋による復帰を許可
-   ARGS='-w "My USB Keyboard" -p "LID"'
-   ```
-
-4. **サービスの再起動**  
-   設定変更を反映するにはサービスを再起動します。
-   ```bash
-   sudo systemctl restart usb-wakeup-blocker.service
-   ```
-
-初回セットアップ時は、以下でサービスを有効化（起動時に自動実行）し、即座に起動できます。
+*   **USBデバイスを確認する場合:**
 ```bash
-sudo systemctl enable --now usb-wakeup-blocker.service
+sudo /usr/local/bin/usb-wakeup-blocker.sh -v
 ```
+
+*   **ACPIデバイス（PCの蓋や電源ボタンなど）を確認する場合:**
+    安全機能のため、`-v`に加えて`-p`オプションで何らかのパターンを一時的に指定する必要があります。これにより、ACPIデバイスを意図的に確認していることが示されます。例えば、"LID"をテストしつつ、すべてのACPIデバイスを表示するには以下のように実行します。
+```bash
+sudo /usr/local/bin/usb-wakeup-blocker.sh -v -p "LID"
+```
+
+出力から、ホワイトリストに追加したいデバイスの `Product` 名（USBデバイスの場合）または `ACPI Device` 名（ACPIデバイスの場合）をメモします。
+
+**出力例:**
+```
+--- USB Wakeup Blocker ---
+...
+Device: 1-2.3           | Product: REALFORCE HYBRID JP FULL  | ...
+...
+--- ACPI Wakeup Management ---
+...
+ACPI Device: LID        | Current: enabled  | ...
+...
+```
+この例では、USBキーボードの製品名は `REALFORCE HYBRID JP FULL`、ノートPCの蓋は `LID` です。
+
+### ステップ2: ホワイトリストをテストする（任意ですが推奨）
+
+設定ファイルを編集する前に、コマンドラインで直接ホワイトリストのパターンをテストできます。これにより、正しいデバイス名を使用しているか、スクリプトが期待通りに動作するかを事前に確認できます。
+
+`-v` を付けて再度スクリプトを実行しますが、今度はステップ1でメモしたデバイス名を `-w` または `-p` フラグで追加します。
+
+```bash
+# USBキーボードのホワイトリストをテストし、Actionの変化を確認します
+sudo /usr/local/bin/usb-wakeup-blocker.sh -v -w "REALFORCE HYBRID JP FULL"
+
+# PCの蓋のホワイトリストをテストします
+sudo /usr/local/bin/usb-wakeup-blocker.sh -v -p "LID"
+```
+
+出力の `Action` 列を確認してください。ホワイトリストに追加したデバイスのアクションが `enable (whitelisted)` または `No change needed`（既に有効だった場合）に変わるはずです。これで、指定したパターンが正しいことが確認できます。
+
+### ステップ3: 設定ファイルを編集する
+
+次に、設定ファイルを編集して、見つけたデバイス名をホワイトリストに追加します。
+
+```bash
+sudo nano /etc/usb-wakeup-blocker.conf
+```
+
+`ARGS` 変数を以下のように更新します。
+
+#### ホワイトリストの書き方
+
+*   **USBデバイス**: `-w "製品名"` を使います。
+*   **ACPIデバイス**: `-p "デバイス名"` を使います。
+*   デバイス名にスペースが含まれる場合は、必ずダブルクォート `"` で囲ってください。
+*   複数のデバイスを許可するには、`-w` や `-p` を繰り返し記述します。
+
+#### 設定例
+
+**例1: 特定のUSBキーボードのみを許可**
+```ini
+# /etc/usb-wakeup-blocker.conf
+# "REALFORCE HYBRID JP FULL" という名前のUSBデバイスによるスリープ復帰を許可します。
+ARGS='-w "REALFORCE HYBRID JP FULL"'
+```
+> **ヒント**: 製品名は部分一致で動作するため、`-w "REALFORCE"` のように短く指定することも可能です。
+
+**例2: キーボードとPCの蓋を許可**
+```ini
+# /etc/usb-wakeup-blocker.conf
+# マウスとキーボードの両方をブロックするモード(-c)にしつつ、
+# 特定のUSBキーボードとPCの蓋(LID)からの復帰は許可します。
+ARGS='-c -w "2.4G Keyboard" -p "LID"'
+```
+
+### ステップ4: サービスを再起動する
+
+設定ファイルを保存したら、`systemd` サービスを再起動して変更を適用します。
+
+```bash
+sudo systemctl restart usb-wakeup-blocker.service
+```
+
+これで、設定がシステムに反映されます。
 
 ## アンインストール
 
 ```bash
+# アンインストールスクリプトには管理者権限が必要です
 sudo ./uninstall.sh
 ```
 
-これによりサービスが停止・無効化され、インストール時に作成されたファイル（設定ファイル含む）が削除されます。
+これによりサービスが停止・無効化され、インストール時に作成されたファイル（設定ファイル含む）が削除されます。  
+スクリプトによって変更されたスリープ復帰設定を完全にリセットするには、システムの再起動を推奨します。
 
 ## トラブルシューティング
 
 ### サービス状態の確認
 
-* サービス状態の確認
+*   **サービス状態の確認:**
     ```bash
     systemctl status usb-wakeup-blocker.service
     ```
-* ログの表示
+*   **ログの表示:**
     ```bash
     journalctl -u usb-wakeup-blocker.service
     ```
@@ -126,32 +187,27 @@ sudo ./uninstall.sh
 
 `-v` フラグを付けてスクリプトを実行すると、調査した各デバイスに関する詳細情報が表示されます。これは、設定ファイルに記述する正しいデバイス名を見つけたり、デバッグしたりするのに役立ちます。
 
-**出力例 (USB):**
+**出力例:**
 ```
-$ sudo /usr/local/bin/usb-wakeup-blocker.sh -v
+$ sudo /usr/local/bin/usb-wakeup-blocker.sh -v -c -w "REALFORCE" -p "LID"
 --- USB Wakeup Blocker ---
-Mode: mouse
+Mode: combo
+Whitelist Patterns: REALFORCE
+ACPI Whitelist Patterns: LID
 Dry Run: false
 --------------------------
-Device: 1-2.2           | Product: USB Receiver              | Mouse: true  | Keyboard: true  | Action: ignore
-Device: 1-2.3           | Product: REALFORCE HYBRID JP FULL  | Mouse: false | Keyboard: true  | Action: ignore
+Device: 1-2.2           | Product: USB Receiver              | Mouse: true  | Keyboard: true  | Action: disable
+Device: 1-2.3           | Product: REALFORCE HYBRID JP FULL  | Mouse: false | Keyboard: true  | Action: enable (whitelisted)
 --------------------------
 Done.
-```
-
-**出力例 (ACPIデバイスを含む場合):**
-
-`-p` フラグを使用してACPIデバイスを管理する場合、追加のセクションが表示されます。
-
-```
-$ sudo /usr/local/bin/usb-wakeup-blocker.sh -v -p "LID"
-... (USBデバイスの出力) ...
 
 --- ACPI Wakeup Management ---
 ------------------------------
 ACPI Device: LID        | Current: enabled  | Desired: enabled  | Action: No change needed
 ACPI Device: GPP3       | Current: enabled  | Desired: disabled | Action: Toggling state
 ```
+
+ヘッダー部分には、現在の動作モード (`Mode`) や、認識されたホワイトリストのパターン (`Whitelist Patterns`) が表示されます。これにより、意図した設定でスクリプトが実行されているかを一目で確認できます。
 
 各項目の意味は以下の通りです。
 
@@ -176,4 +232,4 @@ ACPI Device: GPP3       | Current: enabled  | Desired: disabled | Action: Toggli
 
 ## ライセンス
 
-このプロジェクトは MIT ライセンスで公開されています。詳細は [LICENSE](LICENSE) ファイルをご覧ください。
+このプロジェクトは MIT ライセンスで公開されています。詳細は LICENSE ファイルをご覧ください。

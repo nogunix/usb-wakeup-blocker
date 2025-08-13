@@ -68,34 +68,125 @@ If you want to change which devices are blocked or allowed, you can edit `/etc/u
 
 ## Configuration
 
-After installation, all configuration is done by editing `/etc/usb-wakeup-blocker.conf`.
+Configuration is managed by editing the `ARGS` variable in `/etc/usb-wakeup-blocker.conf`. This variable holds the command-line arguments passed to the script when the service starts.
 
-1.  **Find your device names**: Run the script in verbose mode to see all available USB and ACPI devices.
-    ```bash
-    sudo /usr/local/bin/usb-wakeup-blocker.sh -v
-    ```
-    Look for the `Product` name of the USB keyboard you want to enable, and the `ACPI Device` name for internal devices (e.g., `GPP3`, `LID`).
+### Step 1: Find Your Device Names
 
-2.  **Edit the configuration file**:
-    ```bash
-    sudo nano /etc/usb-wakeup-blocker.conf
-    ```
+First, use the `-v` (verbose) flag to identify the names of your devices.
 
-3.  **Update the `ARGS` variable**: Add your desired devices using the `-w` (for USB) and `-p` (for ACPI) flags.
-    ```ini
-    # Example: Allow a specific USB keyboard and the PC lid to wake the system.
-    ARGS='-w "My USB Keyboard" -p "LID"'
-    ```
-
-4.  **Restart the service** to apply your changes:
-    ```bash
-    sudo systemctl restart usb-wakeup-blocker.service
-    ```
-
-If you are setting up the service for the first time, use the following command to enable it (so it starts on boot) and start it immediately:
+*   **To see USB devices:**
 ```bash
-sudo systemctl enable --now usb-wakeup-blocker.service
+sudo /usr/local/bin/usb-wakeup-blocker.sh -v
 ```
+
+From the output, note the `Product` name for any USB device or the `ACPI Device` name for any ACPI device you wish to whitelist.
+
+**Example Output:**
+```
+$ sudo /usr/local/bin/usb-wakeup-blocker.sh -v
+--- USB Wakeup Blocker ---
+Mode: mouse
+Dry Run: false
+--------------------------
+Device: 1-2.2           | Product: USB Receiver              | Mouse: true  | Keyboard: true  | Action: ignore
+Device: 1-2.3           | Product: REALFORCE HYBRID JP FULL  | Mouse: false | Keyboard: true  | Action: ignore
+Device: 1-2.4           | Product: 2.4G Keyboard             | Mouse: true  | Keyboard: true  | Action: ignore
+Device: 3-3             | Product: ELAN:Fingerprint          | Mouse: false | Keyboard: false | Action: ignore
+Device: 3-4             | Product: (unknown product)         | Mouse: false | Keyboard: false | Action: ignore
+--------------------------
+Done.
+```
+```
+$ sudo /usr/local/bin/usb-wakeup-blocker.sh -v -w "2.4G Keyboard"
+--- USB Wakeup Blocker ---
+Mode: mouse
+Whitelist Patterns: 2.4G Keyboard
+Dry Run: false
+--------------------------
+Device: 1-2.2           | Product: USB Receiver              | Mouse: true  | Keyboard: true  | Action: ignore
+Device: 1-2.3           | Product: REALFORCE HYBRID JP FULL  | Mouse: false | Keyboard: true  | Action: ignore
+Device: 1-2.4           | Product: 2.4G Keyboard             | Mouse: true  | Keyboard: true  | Action: enable (whitelisted)
+Device: 3-3             | Product: ELAN:Fingerprint          | Mouse: false | Keyboard: false | Action: ignore
+Device: 3-4             | Product: (unknown product)         | Mouse: false | Keyboard: false | Action: ignore
+--------------------------
+Done.
+```
+
+**Example: Testing ACPI Device Whitelist**
+
+```
+$ sudo /usr/local/bin/usb-wakeup-blocker.sh -v -p "LID"
+--- USB Wakeup Blocker ---
+Mode: mouse
+ACPI Whitelist Patterns: LID
+Dry Run: false
+--------------------------
+Device: 1-2.2           | Product: USB Receiver              | Mouse: true  | Keyboard: true  | Action: ignore
+Device: 1-2.3           | Product: REALFORCE HYBRID JP FULL  | Mouse: false | Keyboard: true  | Action: ignore
+Device: 1-2.4           | Product: 2.4G Keyboard             | Mouse: true  | Keyboard: true  | Action: disable
+Device: 3-3             | Product: ELAN:Fingerprint          | Mouse: false | Keyboard: false | Action: ignore
+Device: 3-4             | Product: (unknown product)         | Mouse: false | Keyboard: false | Action: ignore
+--------------------------
+Done.
+
+--- ACPI Wakeup Management ---
+------------------------------
+ACPI Device: GPP3       | Current: disabled | Desired: disabled | Action: No change needed
+ACPI Device: GPP4       | Current: disabled | Desired: disabled | Action: No change needed
+ACPI Device: GPP5       | Current: disabled | Desired: disabled | Action: No change needed
+ACPI Device: XHC0       | Current: disabled | Desired: disabled | Action: No change needed
+ACPI Device: XHC1       | Current: disabled | Desired: disabled | Action: No change needed
+ACPI Device: GP19       | Current: disabled | Desired: disabled | Action: No change needed
+ACPI Device: LID        | Current: enabled  | Desired: enabled  | Action: No change needed
+ACPI Device: SLPB       | Current: disabled | Desired: disabled | Action: No change needed
+
+```
+In this example, the USB keyboard's product name is `REALFORCE HYBRID JP FULL` and the laptop lid is `LID`.
+
+### Step 2: Edit the Configuration File
+
+Next, open the configuration file to add your devices to the whitelist.
+
+```bash
+sudo nano /etc/usb-wakeup-blocker.conf
+```
+
+Update the `ARGS` variable as shown in the examples below.
+
+#### Whitelist Syntax
+
+*   **For USB devices**: Use `-w "Product Name"`.
+*   **For ACPI devices**: Use `-p "Device Name"`.
+*   If a device name contains spaces, you **must** enclose it in double quotes (`"`).
+*   To whitelist multiple devices, simply add more `-w` or `-p` flags.
+
+#### Configuration Examples
+
+**Example 1: Whitelist a specific USB Keyboard**
+```ini
+# /etc/usb-wakeup-blocker.conf
+# Allow a USB device with the product name "REALFORCE HYBRID JP FULL" to wake the system.
+ARGS='-w "REALFORCE HYBRID JP FULL"'
+```
+> **Tip**: The script uses partial matching. You could also use a shorter, unique part of the name, like `ARGS='-w "REALFORCE"'`.
+
+**Example 2: Whitelist a Keyboard and the PC Lid**
+```ini
+# /etc/usb-wakeup-blocker.conf
+# Set mode to block mice and keyboards (-c), but explicitly allow a specific
+# USB keyboard and the laptop lid (LID) to wake the system.
+ARGS='-c -w "2.4G Keyboard" -p "LID"'
+```
+
+### Step 3: Restart the Service
+
+After saving the configuration file, restart the `systemd` service to apply your changes.
+
+```bash
+sudo systemctl restart usb-wakeup-blocker.service
+```
+
+Your new settings are now active.
 
 
 ## Uninstallation
@@ -105,7 +196,8 @@ sudo systemctl enable --now usb-wakeup-blocker.service
 sudo ./uninstall.sh
 ```
 
-This will stop and disable the service, and remove all files created during installation, including the configuration file.
+This will stop and disable the service, and remove all files created during installation, including the configuration file.  
+A reboot is recommended to fully reset any changes made to the wakeup settings.
 
 ## Troubleshooting
 
