@@ -70,6 +70,21 @@ If you want to change which devices are blocked or allowed, you can edit `/etc/u
 
 Configuration is managed by editing the `ARGS` variable in `/etc/usb-wakeup-blocker.conf`. This variable holds the command-line arguments passed to the script when the service starts.
 
+### Mode Selection
+
+The script provides modes to control which types of devices are blocked from waking the system. You can set the mode by including one of the following flags in the `ARGS` variable in `/etc/usb-wakeup-blocker.conf`.
+
+*   **`-m` (default)**: Blocks only mice from waking the system.
+*   **`-c`**: Blocks both mice and keyboards from waking the system.
+*   **`-a`**: Blocks all USB devices from waking the system.
+
+**Example:**
+```ini
+# /etc/usb-wakeup-blocker.conf
+# Set the mode to block both mice and keyboards.
+ARGS='-c'
+```
+
 ### Step 1: Find Your Device Names
 
 First, use the `-v` (verbose) flag to identify the names of your devices.
