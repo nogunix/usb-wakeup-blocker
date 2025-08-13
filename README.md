@@ -246,8 +246,8 @@ Done.
 
 --- ACPI Wakeup Management ---
 ------------------------------
-ACPI Device: LID        | Current: enabled  | Desired: enabled  | Action: No change needed
-ACPI Device: GPP3       | Current: enabled  | Desired: disabled | Action: Toggling state
+ACPI Device: LID        | Current: enabled  | Desired: enabled  | Action: ignore
+ACPI Device: GPP3       | Current: enabled  | Desired: disabled | Action: disable
 ```
 
 Here's a breakdown of the columns:
