@@ -197,20 +197,21 @@ if [ ${#ACPI_WHITELIST_PATTERNS[@]} -gt 0 ]; then
       fi
     done
 
-    action="ignore"
-    # We need to toggle the state if it doesn't match our desired state
-    if ($is_whitelisted && [[ "$status" == "disabled" ]]) || \
-       (! $is_whitelisted && [[ "$status" == "enabled" ]]); then
-      
-      if $VERBOSE; then
-        printf "ACPI Device: %-10s | Current: %-8s | Desired: %-8s | Action: Toggling state\n" "$device" "$status" "$( [[ "$status" == "disabled" ]] && echo "enabled" || echo "disabled" )"
-      fi
+    action="No change needed"
+    desired_state="disabled"
+    if $is_whitelisted; then
+      desired_state="enabled"
+    fi
 
+    # We need to toggle the state if it doesn't match our desired state
+    if [[ "$status" != "$desired_state" ]]; then
+      action="Toggling state"
       if ! $DRY_RUN && [ -w "/proc/acpi/wakeup" ]; then
         echo "$device" > /proc/acpi/wakeup
-      elif $DRY_RUN; then
-        echo "[DRY RUN] Would toggle ACPI device $device to $( [[ "$status" == "disabled" ]] && echo "enabled" || echo "disabled" )"
       fi
+    fi
+    if $VERBOSE; then
+      printf "ACPI Device: %-10s | Current: %-8s | Desired: %-8s | Action: %s\n" "$device" "$status" "$desired_state" "$action"
     fi
   done < <(tail -n +2 /proc/acpi/wakeup)
 fi

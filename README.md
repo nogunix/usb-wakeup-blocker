@@ -120,6 +120,50 @@ This will stop and disable the service, and remove all files created during inst
     journalctl -u usb-wakeup-blocker.service
     ```
 
+### Understanding the Verbose (`-v`) Output
+
+When you run the script with the `-v` flag, it provides detailed information about each device it inspects. This is useful for debugging and for finding the correct device names for your configuration file.
+
+```
+$ sudo /usr/local/bin/usb-wakeup-blocker.sh -v -c -w "REALFORCE" -p "LID"
+--- USB Wakeup Blocker ---
+Mode: combo
+Whitelist Patterns: REALFORCE
+ACPI Whitelist Patterns: LID
+Dry Run: false
+--------------------------
+Device: 1-2.2           | Product: USB Receiver              | Mouse: true  | Keyboard: true  | Action: disable
+Device: 1-2.3           | Product: REALFORCE HYBRID JP FULL  | Mouse: false | Keyboard: true  | Action: enable (whitelisted)
+--------------------------
+Done.
+
+--- ACPI Wakeup Management ---
+------------------------------
+ACPI Device: LID        | Current: enabled  | Desired: enabled  | Action: No change needed
+ACPI Device: GPP3       | Current: enabled  | Desired: disabled | Action: Toggling state
+```
+
+Here's a breakdown of the columns:
+
+**For USB Devices:**
+
+*   **`Device`**: The internal system ID for the USB device (e.g., `1-2.2`).
+*   **`Product`**: The human-readable product name. This is the name you should use with the `-w` flag in your configuration file.
+*   **`Mouse` / `Keyboard`**: `true` if the device identifies as a mouse or keyboard.
+*   **`Action`**: The action taken by the script:
+    *   `disable`: The device matched the blocking criteria (e.g., it's a mouse/keyboard in `combo` mode) and its wakeup capability was disabled.
+    *   `enable (whitelisted)`: The device was found in the USB whitelist and its wakeup capability was enabled.
+    *   `ignore`: No change was made. This usually means the device's wakeup state was already correct.
+
+**For ACPI Devices:**
+
+*   **`ACPI Device`**: The name of the ACPI device (e.g., `LID`). Use this with the `-p` flag.
+*   **`Current`**: The current wakeup state (`enabled` or `disabled`).
+*   **`Desired`**: The desired state based on your whitelist. Whitelisted devices should be `enabled`, others `disabled`.
+*   **`Action`**:
+    *   `Toggling state`: The current state did not match the desired state, so the script changed it.
+    *   `No change needed`: The device is already in the desired state.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

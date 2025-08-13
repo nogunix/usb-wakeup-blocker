@@ -122,6 +122,58 @@ sudo ./uninstall.sh
     journalctl -u usb-wakeup-blocker.service
     ```
 
+### 詳細表示（-v）出力の読み方
+
+`-v` フラグを付けてスクリプトを実行すると、調査した各デバイスに関する詳細情報が表示されます。これは、設定ファイルに記述する正しいデバイス名を見つけたり、デバッグしたりするのに役立ちます。
+
+**出力例 (USB):**
+```
+$ sudo /usr/local/bin/usb-wakeup-blocker.sh -v
+--- USB Wakeup Blocker ---
+Mode: mouse
+Dry Run: false
+--------------------------
+Device: 1-2.2           | Product: USB Receiver              | Mouse: true  | Keyboard: true  | Action: ignore
+Device: 1-2.3           | Product: REALFORCE HYBRID JP FULL  | Mouse: false | Keyboard: true  | Action: ignore
+--------------------------
+Done.
+```
+
+**出力例 (ACPIデバイスを含む場合):**
+
+`-p` フラグを使用してACPIデバイスを管理する場合、追加のセクションが表示されます。
+
+```
+$ sudo /usr/local/bin/usb-wakeup-blocker.sh -v -p "LID"
+... (USBデバイスの出力) ...
+
+--- ACPI Wakeup Management ---
+------------------------------
+ACPI Device: LID        | Current: enabled  | Desired: enabled  | Action: No change needed
+ACPI Device: GPP3       | Current: enabled  | Desired: disabled | Action: Toggling state
+```
+
+各項目の意味は以下の通りです。
+
+**USBデバイス:**
+
+*   **`Device`**: USBデバイスの内部システムIDです（例: `1-2.2`）。
+*   **`Product`**: 人間が読める製品名です。設定ファイルで `-w`（ホワイトリスト）フラグと共に使用するのはこの名前です。
+*   **`Mouse` / `Keyboard`**: デバイスがマウスまたはキーボードとして認識される場合は `true` になります。
+*   **`Action`**: スクリプトが実行したアクションです。
+    *   `disable`: デバイスがブロック条件に一致したため、ウェイクアップ機能が無効化されました。
+    *   `enable (whitelisted)`: デバイスがホワイトリストに含まれていたため、ウェイクアップ機能が有効化されました。
+    *   `ignore`: デバイスのウェイクアップ設定が既に望ましい状態だったため、変更は行われませんでした。
+
+**ACPIデバイス:** (`-p` フラグを使用したときのみ表示されます)
+
+*   **`ACPI Device`**: ACPIデバイス名です（例: `LID`）。`-p` フラグでこの名前を使用します。
+*   **`Current`**: 現在のウェイクアップ状態です（`enabled` または `disabled`）。
+*   **`Desired`**: ホワイトリストに基づいた望ましい状態です。ホワイトリスト内のデバイスは `enabled`、それ以外は `disabled` になります。
+*   **`Action`**:
+    *   `Toggling state`: 現在の状態が望ましい状態と一致しなかったため、スクリプトが状態を切り替えました。
+    *   `No change needed`: デバイスは既に望ましい状態です。
+
 ## ライセンス
 
 このプロジェクトは MIT ライセンスで公開されています。詳細は [LICENSE](LICENSE) ファイルをご覧ください。
