@@ -57,7 +57,6 @@ For most users, you do **not** need to edit the configuration file.
 Just install and start the service:
 
 ```bash
-sudo ./install.sh
 sudo systemctl enable --now usb-wakeup-blocker.service
 ```
 
