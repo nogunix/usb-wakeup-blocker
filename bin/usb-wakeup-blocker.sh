@@ -47,7 +47,7 @@ require_root() {
 }
 
 safe_write() {
-    # safe_write <value> <file> <verbose:true|false>
+    # Safely writes a value to a file, checking for writability first.
     local value=$1 file=$2 verbose=$3
     if [[ ! -w "$file" ]]; then
         $verbose && warning "Not writable: $file"
@@ -81,6 +81,8 @@ get_device_info() {
     devnum=$(<"$device_dir/devnum")
 
     if is_function_available lsusb; then
+        # Use 'lsusb' to get detailed device info.
+        # '|| true' prevents script exit if lsusb fails (e.g., device disconnected).
         lsusb_output=$(lsusb -v -s "${busnum}:${devnum}" 2>/dev/null || true)
     else
         lsusb_output=""
@@ -95,6 +97,7 @@ get_device_info() {
     [[ "$lsusb_output" =~ bInterfaceProtocol.*2\ Mouse ]] && is_mouse="true" || is_mouse="false"
     [[ "$lsusb_output" =~ bInterfaceProtocol.*1\ Keyboard ]] && is_keyboard="true" || is_keyboard="false"
 
+    # Extract the first iProduct string from the lsusb verbose output.
     product_name=$(echo "$lsusb_output" | grep -m1 -E "^[[:space:]]*iProduct[[:space:]]+[0-9]+" | sed -E 's/.*iProduct[[:space:]]+[0-9]+[[:space:]]+//')
     [[ -z "$product_name" ]] && product_name="(unknown product)"
 
@@ -172,6 +175,7 @@ process_acpi_devices() {
         return
     fi
 
+    # Process /proc/acpi/wakeup, skipping the header line via 'tail'.
     while read -r device s_state status _; do
         status=${status#\*}
         local is_whitelisted=false
@@ -182,19 +186,26 @@ process_acpi_devices() {
         local desired_state="disabled"
         $is_whitelisted && desired_state="enabled"
 
-        local action="No change needed"
+        local action="ignore"
         if [[ "$status" != "$desired_state" ]]; then
-            action="Toggling state"
+            if $is_whitelisted; then
+                action="enable (whitelisted)"
+            else
+                action="disable"
+            fi
+
             if ! $dry_run; then
+                # Attempt to toggle the state; report failure but do not exit.
                 if ! echo "$device" > /proc/acpi/wakeup 2>/dev/null; then
-                    action="Toggle (failed)"
+                    action+=" (failed)"
                     $verbose && warning "ACPI toggle failed: $device"
                 fi
             fi
         fi
 
-        $verbose && printf "ACPI Device: %-10s | Current: %-8s | Desired: %-8s | Action: %s\n" \
-            "$device" "$status" "$desired_state" "$action"
+        # Only print if an action was taken, or if verbose mode is on.
+        [[ "$action" != "ignore" || "$verbose" == "true" ]] && printf "ACPI Device: %-10s | Current: %-8s | Desired: %-8s | Action: %s\n" \
+             "$device" "$status" "$desired_state" "$action"
     done < <(tail -n +2 /proc/acpi/wakeup)
 }
 
@@ -243,4 +254,5 @@ main() {
     return 0
 }
 
+# Execute the main function, passing all script arguments to it.
 main "$@"
