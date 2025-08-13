@@ -1,7 +1,8 @@
 # usb-wakeup-blocker
 
-[![GitHub last commit](https://img.shields.io/github/last-commit/mnoguchi/usb-wakeup-blocker)](https://github.com/nogunix/usb-wakeup-blocker/commits/main)
+[![GitHub last commit](https://img.shields.io/github/last-commit/nogunix/usb-wakeup-blocker)](https://github.com/nogunix/usb-wakeup-blocker/commits/main)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nogunix/usb-wakeup-blocker/blob/main/LICENSE)
+
 
 [English](./README.md) | [日本語](./README.ja.md)
 

@@ -1,7 +1,8 @@
 # usb-wakeup-blocker
 
-[![GitHub last commit](https://img.shields.io/github/last-commit/mnoguchi/usb-wakeup-blocker)](https://github.com/nogunix/usb-wakeup-blocker/commits/main)
+[![GitHub last commit](https://img.shields.io/github/last-commit/nogunix/usb-wakeup-blocker)](https://github.com/nogunix/usb-wakeup-blocker/commits/main)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nogunix/usb-wakeup-blocker/blob/main/LICENSE)
+
 
 [English](./README.md) | [日本語](./README.ja.md)
 
@@ -12,6 +13,12 @@
 多くのLinuxシステムでは、デフォルトで多くのデバイスがスリープからの復帰を許可されています。これは、高感度なマウスのわずかな動きや、USB電源の瞬間的な変動によって、意図せずコンピュータがスリープから復帰してしまう原因となり、非常に煩わしいことがあります。
 
 このプロジェクトは、**ホワイトリスト方式**を導入することでこの問題を解決します。無効化するデバイスを推測する代わりに、スリープからの復帰を**許可する**デバイスを明示的に定義します。それ以外のすべてのデバイスは、自動的に復帰が無効になります。
+
+## デフォルトの挙動
+
+設定を行わない場合、サービスは「マウスのみ」スリープ復帰を防止します。  
+キーボードやPCの蓋、電源ボタンなど他のデバイスは従来通り動作します。  
+これは、最も一般的な「マウスによる誤復帰防止」に適した初期設定です。
 
 ## 特徴
 
