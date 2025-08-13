@@ -271,6 +271,35 @@ Here's a breakdown of the columns:
     *   `Toggling state`: The current state did not match the desired state, so the script changed it.
     *   `No change needed`: The device is already in the desired state.
 
+## Development & Testing
+
+This repository includes automated tests and shell script linting to ensure code quality and reliability.
+
+### Run Automated Tests
+
+To run the test suite, execute the following script:
+
+```bash
+./test/run-tests.sh
+```
+
+If all tests pass, you should see output similar to this:
+```text
+5 tests, 0 failures
+
+All tests passed!
+```
+
+### Run ShellCheck Lint
+
+To check the main script for potential issues using ShellCheck, run:
+```bash
+shellcheck bin/usb-wakeup-blocker.sh
+```
+If no output appears, there are no lint issues.
+
+**Note:** These checks also run automatically in GitHub Actions when you push changes or open a pull request.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
