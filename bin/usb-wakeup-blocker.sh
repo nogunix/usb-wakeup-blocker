@@ -183,7 +183,8 @@ process_acpi_devices() {
         return
     fi
 
-    while read -r device s_state status _; do
+    # ShellCheck SC2034 対策: 未使用列は "_" に読み捨て
+    while read -r device _ status _; do
         status=${status#\*}
         local is_whitelisted=false
         for pattern in "${acpi_whitelist_patterns[@]}"; do
