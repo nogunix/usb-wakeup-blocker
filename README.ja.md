@@ -1,4 +1,9 @@
-# Linux向け柔軟なスリープ復帰制御
+# usb-wakeup-blocker
+
+[![GitHub last commit](https://img.shields.io/github/last-commit/mnoguchi/usb-wakeup-blocker)](https://github.com/mnoguchi/usb-wakeup-blocker/commits/main)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/mnoguchi/usb-wakeup-blocker/blob/main/LICENSE)
+
+English | 日本語
 
 コンピュータをスリープから復帰させることができるUSBおよびACPIデバイスを、正確に制御するためのスクリプトとsystemdサービスです。
 
@@ -7,10 +12,6 @@
 多くのLinuxシステムでは、デフォルトで多くのデバイスがスリープからの復帰を許可されています。これは、高感度なマウスのわずかな動きや、USB電源の瞬間的な変動によって、意図せずコンピュータがスリープから復帰してしまう原因となり、非常に煩わしいことがあります。
 
 このプロジェクトは、**ホワイトリスト方式**を導入することでこの問題を解決します。無効化するデバイスを推測する代わりに、スリープからの復帰を**許可する**デバイスを明示的に定義します。それ以外のすべてのデバイスは、自動的に復帰が無効になります。
-
-### デフォルトの挙動
-
-設定ファイルを一切変更しないデフォルトの状態では、このサービスは**マウス**によるスリープ復帰のみをブロックします。キーボードやPCの蓋、電源ボタンなど、マウス以外のすべてのデバイスは、これまで通りスリープから復帰できます。これにより、最も一般的な「高感度なマウスによる意図しない復帰を防ぐ」という目的を、設定不要で実現します。
 
 ## 特徴
 
@@ -95,4 +96,4 @@ sudo ./uninstall.sh
 
 ## ライセンス
 
-このプロジェクトは MIT ライセンスの下で公開されています。
+このプロジェクトはMITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)ファイルをご覧ください。

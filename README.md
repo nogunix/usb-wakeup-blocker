@@ -1,4 +1,7 @@
-# Flexible Wakeup Control for Linux
+# usb-wakeup-blocker
+
+[![GitHub last commit](https://img.shields.io/github/last-commit/mnoguchi/usb-wakeup-blocker)](https://github.com/mnoguchi/usb-wakeup-blocker/commits/main)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/mnoguchi/usb-wakeup-blocker/blob/main/LICENSE)
 
 [English](./README.md) | [日本語](./README.ja.md)
 
@@ -18,7 +21,6 @@ By default, without any configuration, the service will only prevent **mice** fr
 
 - **Whitelist Control**: Explicitly define which devices can wake the system.
 - **Manages Both USB and ACPI**: Controls not only USB peripherals (mice, keyboards) but also internal ACPI devices (like internal keyboards, power buttons, and lids).
-- **Configuration File**: All settings are managed in a simple configuration file (`/etc/default/usb-wakeup-blocker`).
 - **Configuration File**: All settings are managed in a simple configuration file (`/etc/usb-wakeup-blocker.conf`).
 - **Systemd Integration**: Runs as a `systemd` service to apply settings automatically on boot.
 - **Diagnostics**: Includes verbose (`-v`) and dry-run (`-d`) modes for easy troubleshooting.
@@ -98,4 +100,4 @@ This will stop and disable the service, and remove all files created during inst
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.a
