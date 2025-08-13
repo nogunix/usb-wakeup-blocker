@@ -34,6 +34,11 @@ By default, without any configuration, the service will only prevent **mice** fr
 ## Installation
 
 ```bash
+# 1. Clone the repository
+git clone https://github.com/nogunix/usb-wakeup-blocker.git
+cd usb-wakeup-blocker
+
+# 2. Run the installation script
 # The install script requires administrator privileges to copy files and manage the service.
 sudo ./install.sh
 ```

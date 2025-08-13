@@ -35,6 +35,11 @@
 ## インストール
 
 ```bash
+# 1. リポジトリをクローン
+git clone https://github.com/nogunix/usb-wakeup-blocker.git
+cd usb-wakeup-blocker
+
+# 2. インストールスクリプトを実行
 # インストールスクリプトは、ファイルのコピーとサービスの管理のために管理者権限を必要とします。
 sudo ./install.sh
 ```
@@ -50,10 +55,9 @@ sudo ./install.sh
 ## シンプルな使い方（設定ファイル編集不要）
 
 ほとんどのユーザーは設定ファイルを編集する必要はありません。  
-インストール後、以下のコマンドでサービスを有効化・起動するだけです。
+インストール後（どちらの方法でも）、以下のコマンドでサービスを有効化・起動するだけです。
 
 ```bash
-sudo ./install.sh
 sudo systemctl enable --now usb-wakeup-blocker.service
 ```
 
