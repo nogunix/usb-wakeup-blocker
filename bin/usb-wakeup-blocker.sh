@@ -245,22 +245,29 @@ main() {
         dry_run=${DRY_RUN:-$dry_run}
         verbose=${VERBOSE:-$verbose}
 
-        # Reset and ingest from config (string or array)
-        whitelist_patterns=()
+    # Reset and ingest from config (string or array)
+    whitelist_patterns=()
 
-        # WHITELIST_PATTERNS は設定ファイル側のキー（大文字）。小文字の
-        # whitelist_patterns は内部用バッファ。意図的に別変数です。
+    # WHITELIST_PATTERNS は設定ファイル側のキー（大文字）。
+    # 小文字の whitelist_patterns は内部用バッファ（別物）です。
+    # shellcheck disable=SC2153
+    if declare -p WHITELIST_PATTERNS >/dev/null 2>&1; then
+        # 配列として定義されているかを判定
         # shellcheck disable=SC2153
-        if [[ $(declare -p WHITELIST_PATTERNS 2>/dev/null) =~ 'declare -a' ]]; then
-            whitelist_patterns+=("${WHITELIST_PATTERNS[@]}")
-        # shellcheck disable=SC2153
-        elif [[ ${WHITELIST_PATTERNS+set} == set ]]; then
-            read -r -a _tmp <<<"${WHITELIST_PATTERNS}"
+        if declare -p WHITELIST_PATTERNS 2>/dev/null | grep -q '^declare \-a '; then
+            # 配列の場合
+            # shellcheck disable=SC2153
+            { whitelist_patterns+=("${WHITELIST_PATTERNS[@]}"); }
+        else
+            # 文字列（スペース区切り）の場合
+            # shellcheck disable=SC2153
+            { read -r -a _tmp <<<"${WHITELIST_PATTERNS}"; }
             whitelist_patterns+=("${_tmp[@]}")
             unset _tmp
         fi
     fi
 
+    fi
     # --- Parse command-line arguments (override config) ---
     while [[ $# -gt 0 ]]; do
         case "$1" in
