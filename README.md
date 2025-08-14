@@ -63,14 +63,14 @@ Done.
 
 ## Options Overview
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-m` | Block only mice from waking the system | ✅ |
-| `-c` | Block both mice and keyboards | ❌ |
-| `-a` | Block all USB devices | ❌ |
-| `-w "NAME"` | Whitelist a device by product name (can be repeated) | ❌ |
-| `-v` | Verbose output for diagnostics | ❌ |
-| `-d` | Dry-run mode (no changes made) | ❌ |
+| Flag | Description |
+|------|-------------|
+| `-m` | Block only mice from waking the system *(default)* |
+| `-c` | Block both mice and keyboards |
+| `-a` | Block all USB devices |
+| `-w "NAME"` | Whitelist a device by product name (can be repeated) |
+| `-v` | Verbose output for diagnostics |
+| `-d` | Dry-run mode (no changes made) |
 
 ---
 
