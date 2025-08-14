@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # usb-wakeup-blocker.sh — Disable USB devices from waking up the system (with whitelist support)
 
-# If not running under bash, re-exec with bash (POSIX-safe)
+# Re-exec with bash if needed (POSIX-safe)
 [ -n "${BASH_VERSION:-}" ] || exec /usr/bin/env bash "$0" "$@"
 
 set -euo pipefail
@@ -69,13 +69,15 @@ safe_write() {
 HEADER_FORMAT="%-15s | %-28s | %-28s | %-5s | %-8s | %-s\n"
 
 # ===== USB helper =====
-# Return (tab-separated): is_mouse \t is_keyboard \t product_name \t vendor_name
-# - product_name: for -w matching (from sysfs product or lsusb -v iProduct)
-# - vendor_name : from lsusb -v idVendor trailing name or sysfs manufacturer
+# Return value of get_device_info (tab-separated):
+# is_mouse \t is_keyboard \t product_name \t vendor_name
+# - product_name … Product name used for the -w option (from sysfs's product or lsusb -v's iProduct)
+# - vendor_name … Vendor name from the end of the idVendor line in `lsusb -v`, or sysfs manufacturer
 declare -A DEVICE_INFO_CACHE
 get_device_info() {
   local device_dir="$1"
   local busnum devnum lsusb_v_output is_mouse is_keyboard product_name vendor_name
+
   is_mouse="false"; is_keyboard="false"; product_name="(unknown product)"; vendor_name=""
 
   if [[ -v DEVICE_INFO_CACHE["$device_dir"] ]]; then
@@ -97,13 +99,13 @@ get_device_info() {
   if is_function_available lsusb; then
     if [[ -n "${busnum:-}" && -n "${devnum:-}" ]]; then
       lsusb_v_output="$(lsusb -v -s "${busnum}:${devnum}" 2>/dev/null || true)"
-    elif [[ -r "$device_dir/idVendor" && -r "$device_dir/idProduct" ]]; then
-      local vid pid
-      vid="$(<"$device_dir/idVendor")"
-      pid="$(<"$device_dir/idProduct")"
-      lsusb_v_output="$(lsusb -v -d "${vid}:${pid}" 2>/dev/null || true)"
     else
-      lsusb_v_output=""
+      if [[ -r "$device_dir/idVendor" && -r "$device_dir/idProduct" ]]; then
+        local vid pid
+        vid="$(<"$device_dir/idVendor")"
+        pid="$(<"$device_dir/idProduct")"
+        lsusb_v_output="$(lsusb -v -d "${vid}:${pid}" 2>/dev/null || true)"
+      fi
     fi
   else
     lsusb_v_output=""
@@ -118,23 +120,24 @@ get_device_info() {
     if grep -qiE 'Interface.*Mouse|HID.*Mouse|Protocol.*Mouse|Protocol.*\(Mouse\)' <<<"$lsusb_v_output"; then
       is_mouse="true"
     fi
-    # --- Extract product name from iProduct ---
+    # --- Extract only the product name from iProduct ---
     local ip
     ip="$(sed -nE 's/^[[:space:]]*iProduct[[:space:]]+[0-9]+[[:space:]]+(.+)$/\1/p' <<<"$lsusb_v_output" | head -n1)"
     [[ -n "$ip" ]] && product_name="$ip"
-    # --- Extract vendor name from idVendor ---
+    # --- Extract only the vendor name from idVendor ---
     local iv
     iv="$(sed -nE 's/^[[:space:]]*idVendor[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+(.+)$/\1/p' <<<"$lsusb_v_output" | head -n1)"
     [[ -n "$iv" ]] && vendor_name="$iv"
   fi
 
-  # Fallback to sysfs manufacturer
+  # Fallback to sysfs manufacturer if vendor name is not available
   if [[ -z "$vendor_name" && -r "$device_dir/manufacturer" ]]; then
     vendor_name="$(<"$device_dir/manufacturer")"
   fi
   [[ -n "$vendor_name" ]]  || vendor_name="(unknown vendor)"
   [[ -n "$product_name" ]] || product_name="(unknown product)"
 
+  # Join with a literal tab character ($'\t')
   DEVICE_INFO_CACHE["$device_dir"]="${is_mouse}"$'\t'"${is_keyboard}"$'\t'"${product_name}"$'\t'"${vendor_name}"
   echo "${DEVICE_INFO_CACHE[$device_dir]}"
 }
@@ -168,7 +171,7 @@ process_usb_devices() {
     local is_mouse is_keyboard product_name vendor_name
     IFS=$'\t' read -r is_mouse is_keyboard product_name vendor_name < <(get_device_info "$dir")
 
-    # Match -w against product_name
+    # Match -w option only against product_name (separate from lsusb vendor name)
     local is_whitelisted=false
     for pattern in "${whitelist_patterns[@]}"; do
       [[ "$product_name" == *"$pattern"* ]] && { is_whitelisted=true; break; }
@@ -215,25 +218,27 @@ process_usb_devices() {
 # ===== main =====
 main() {
   # Allow tests to skip root check
-  if [[ "${SKIP_ROOT_CHECK:-0}" != "1" ]]; then require_root; fi
+  if [[ "${SKIP_ROOT_CHECK:-0}" != "1" ]]; then
+    require_root
+  fi
 
-  # --- Defaults BEFORE loading config ---
+  # --- Defaults BEFORE loading config (avoid set -u on unset vars) ---
   local mode="$DEFAULT_MODE"
   local dry_run=false
   local verbose=false
-  local -a WL_PATTERNS=()   # internal buffer (name intentionally differs from WHITELIST_PATTERNS)
+  local -a WL_PATTERNS=()   # internal buffer (distinct name to avoid collisions)
 
   # --- Load config file (override defaults) ---
   if [[ -f "$CONFIG_FILE" ]]; then
     # shellcheck source=/dev/null
     source "$CONFIG_FILE"
 
-    # Accept both upper/lower names in config; prefer upper for clarity
-    mode="${MODE:-${mode}}"
-    dry_run=${DRY_RUN:-$dry_run}
-    verbose=${VERBOSE:-$verbose}
+    # Accept config overrides
+    mode="${MODE:-$mode}"
+    dry_run="${DRY_RUN:-$dry_run}"
+    verbose="${VERBOSE:-$verbose}"
 
-    # Safely ingest WHITELIST_PATTERNS (array or space-separated string)
+    # Ingest whitelist patterns (array or string)
     if [[ -v WHITELIST_PATTERNS ]]; then
       if declare -p WHITELIST_PATTERNS 2>/dev/null | grep -q '^declare \-a '; then
         WL_PATTERNS+=("${WHITELIST_PATTERNS[@]}")
@@ -243,8 +248,7 @@ main() {
         unset _tmp
       fi
     fi
-
-    # Also accept lowercase 'whitelist_patterns' if present (array or string)
+    # Also accept lowercase key, if present
     if [[ -v whitelist_patterns ]]; then
       if declare -p whitelist_patterns 2>/dev/null | grep -q '^declare \-a '; then
         WL_PATTERNS+=("${whitelist_patterns[@]}")
@@ -286,4 +290,3 @@ main() {
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   main "$@"
 fi
-
