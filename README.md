@@ -155,6 +155,8 @@ Removes:
 
 ## Development & Testing
 
+For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 Run the test suite:
 ```bash
 ./test/run-tests.sh
