@@ -1,0 +1,35 @@
+diff --git a/bin/usb-wakeup-blocker.sh b/bin/usb-wakeup-blocker.sh
+index e3d..e4e 100755
+--- a/bin/usb-wakeup-blocker.sh
++++ b/bin/usb-wakeup-blocker.sh
+@@ -170,7 +170,9 @@ process_usb_devices() {
+         print_line
+-        # We intentionally use a variable as the printf format to centralize column widths.
+-        # shellcheck disable=SC2059
+-        printf "$HEADER_FORMAT" "Device" "Product (for -w)" "Vendor" "Mouse" "Keyboard" "Action"
++        # We intentionally use a variable as the printf format to centralize column widths.
++        # shellcheck disable=SC2059
++        { printf "$HEADER_FORMAT" \
++            "Device" "Product (for -w)" "Vendor" "Mouse" "Keyboard" "Action"; }
+         print_line
+     fi
+ 
+@@ -213,7 +215,9 @@ process_usb_devices() {
+         fi
+ 
+         if $verbose; then
+-            # We intentionally use a variable as the printf format to centralize column widths.
+-            # shellcheck disable=SC2059
+-            printf "$HEADER_FORMAT" \
++            # We intentionally use a variable as the printf format to centralize column widths.
++            # shellcheck disable=SC2059
++            { printf "$HEADER_FORMAT" \
+                 "$(basename "$dir")" \
+                 "$product_name" \
+                 "$vendor_name" \
+                 "$is_mouse" \
+                 "$is_keyboard" \
+-                "$action"
++                "$action"; }
+         fi
+     done

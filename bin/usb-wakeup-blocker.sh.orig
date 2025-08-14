@@ -152,9 +152,7 @@ get_device_info() {
 # Generate a table border line matching the header width
 print_line() {
     local line
-    # We intentionally use a variable as the printf format to centralize column widths.
-    # shellcheck disable=SC2059
-    printf -v line "$HEADER_FORMAT" "Device" "Product (for -w)" "Vendor" "Mouse" "Keyboard" "Action"
+    line=$(printf "$HEADER_FORMAT" "Device" "Product (for -w)" "Vendor" "Mouse" "Keyboard" "Action")
     printf '%*s\n' "${#line}" '' | tr ' ' '-'
 }
 
@@ -169,7 +167,6 @@ process_usb_devices() {
         echo "Dry Run: $dry_run"
         # Table header
         print_line
-        # shellcheck disable=SC2059
         printf "$HEADER_FORMAT" "Device" "Product (for -w)" "Vendor" "Mouse" "Keyboard" "Action"
         print_line
     fi
