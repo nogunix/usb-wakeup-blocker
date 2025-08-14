@@ -2,13 +2,13 @@
 # usb-wakeup-blocker.sh
 # Disable USB devices from waking up the system (with whitelist support)
 
+set -euo pipefail
+
 # ===== Constants =====
 readonly DEFAULT_MODE="mouse"   # mouse / all / combo
 readonly -a VALID_MODES=(mouse all combo)
 
 # ===== Test-overridable paths =====
-# For tests, set:
-#   export USB_DEVICES_GLOB="/tmp/mock_sys_bus_usb/devices/*"
 CONFIG_FILE="${CONFIG_FILE:-/etc/usb-wakeup-blocker.conf}"
 USB_DEVICES_GLOB="${USB_DEVICES_GLOB:-/sys/bus/usb/devices/*}"
 
@@ -69,45 +69,85 @@ safe_write() {
 }
 
 # ===== USB helper =====
+# get_device_info の返り値（タブ区切り）:
+#   is_mouse \t is_keyboard \t product_name \t vendor_name
+# - product_name … 「-w で使う」製品名（sysfsの product または lsusb -v の iProduct）
+# - vendor_name  … lsusb -v の idVendor 行末のベンダ名 or sysfs manufacturer
 declare -A DEVICE_INFO_CACHE
 get_device_info() {
     local device_dir="$1"
-    local busnum devnum lsusb_output is_mouse is_keyboard product_name
+    local busnum devnum lsusb_v_output is_mouse is_keyboard product_name vendor_name
+    is_mouse="false"; is_keyboard="false"; product_name="(unknown product)"; vendor_name=""
 
     if [[ -v DEVICE_INFO_CACHE["$device_dir"] ]]; then
         echo "${DEVICE_INFO_CACHE[$device_dir]}"
         return
     fi
 
-    if [[ ! -f "$device_dir/busnum" || ! -f "$device_dir/devnum" ]]; then
-        DEVICE_INFO_CACHE["$device_dir"]="false false (error: no bus/dev num)"
-        echo "${DEVICE_INFO_CACHE[$device_dir]}"
-        return
+    # Prefer sysfs product for -w matching
+    if [[ -r "$device_dir/product" ]]; then
+        product_name="$(<"$device_dir/product")"
+        [[ -n "$product_name" ]] || product_name="(unknown product)"
     fi
 
-    busnum=$(<"$device_dir/busnum")
-    devnum=$(<"$device_dir/devnum")
+    if [[ -f "$device_dir/busnum" && -f "$device_dir/devnum" ]]; then
+        busnum="$(<"$device_dir/busnum")"
+        devnum="$(<"$device_dir/devnum")"
+    fi
 
     if is_function_available lsusb; then
-        lsusb_output=$(lsusb -v -s "${busnum}:${devnum}" 2>/dev/null || true)
+        if [[ -n "${busnum:-}" && -n "${devnum:-}" ]]; then
+            lsusb_v_output="$(lsusb -v -s "${busnum}:${devnum}" 2>/dev/null || true)"
+        else
+            if [[ -r "$device_dir/idVendor" && -r "$device_dir/idProduct" ]]; then
+                local vid pid
+                vid="$(<"$device_dir/idVendor")"
+                pid="$(<"$device_dir/idProduct")"
+                lsusb_v_output="$(lsusb -v -d "${vid}:${pid}" 2>/dev/null || true)"
+            fi
+        fi
     else
-        lsusb_output=""
+        lsusb_v_output=""
     fi
 
-    if [[ -z "$lsusb_output" ]]; then
-        DEVICE_INFO_CACHE["$device_dir"]="false false (unknown product)"
-        echo "${DEVICE_INFO_CACHE[$device_dir]}"
-        return
+    # Mouse/Keyboard detection + iProduct/vendor 抽出
+    if [[ -n "$lsusb_v_output" ]]; then
+        # --- Mouse / Keyboard 判定 ---
+        if grep -qiE 'Interface.*Keyboard|HID.*Keyboard|Protocol.*Keyboard|Protocol.*\(Keyboard\)' <<<"$lsusb_v_output"; then
+            is_keyboard="true"
+        fi
+        if grep -qiE 'Interface.*Mouse|HID.*Mouse|Protocol.*Mouse|Protocol.*\(Mouse\)' <<<"$lsusb_v_output"; then
+            is_mouse="true"
+        fi
+
+        # --- iProduct の「製品名だけ」を抽出 ---
+        # 例: "  iProduct                2 USB Receiver" -> "USB Receiver"
+        ip="$(sed -nE 's/^[[:space:]]*iProduct[[:space:]]+[0-9]+[[:space:]]+(.+)$/\1/p' <<<"$lsusb_v_output" | head -n1)"
+        [[ -n "$ip" ]] && product_name="$ip"
+
+        # --- idVendor の「ベンダ名だけ」を抽出 ---
+        # 例: "  idVendor           0x046d Logitech, Inc." -> "Logitech, Inc."
+        iv="$(sed -nE 's/^[[:space:]]*idVendor[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+(.+)$/\1/p' <<<"$lsusb_v_output" | head -n1)"
+        [[ -n "$iv" ]] && vendor_name="$iv"
     fi
 
-    [[ "$lsusb_output" =~ bInterfaceProtocol.*2\ Mouse ]] && is_mouse="true" || is_mouse="false"
-    [[ "$lsusb_output" =~ bInterfaceProtocol.*1\ Keyboard ]] && is_keyboard="true" || is_keyboard="false"
+    # ベンダ名が取れない場合のフォールバック（sysfs manufacturer）
+    if [[ -z "$vendor_name" && -r "$device_dir/manufacturer" ]]; then
+        vendor_name="$(<"$device_dir/manufacturer")"
+    fi
+    [[ -n "$vendor_name" ]] || vendor_name="(unknown vendor)"
+    [[ -n "$product_name" ]] || product_name="(unknown product)"
 
-    product_name=$(echo "$lsusb_output" | grep -m1 -E "^[[:space:]]*iProduct[[:space:]]+[0-9]+" | sed -E 's/.*iProduct[[:space:]]+[0-9]+[[:space:]]+//')
-    [[ -z "$product_name" ]] && product_name="(unknown product)"
-
-    DEVICE_INFO_CACHE["$device_dir"]="$is_mouse $is_keyboard $product_name"
+    # ★ 実タブで結合（$'\t'）★
+    DEVICE_INFO_CACHE["$device_dir"]="${is_mouse}"$'\t'"${is_keyboard}"$'\t'"${product_name}"$'\t'"${vendor_name}"
     echo "${DEVICE_INFO_CACHE[$device_dir]}"
+}
+
+
+# テーブル罫線生成（幅に合わせて棒線を出す）
+print_line() {
+    local width="$1"
+    printf '%*s\n' "$width" '' | tr ' ' '-'
 }
 
 process_usb_devices() {
@@ -115,17 +155,25 @@ process_usb_devices() {
     shift 3
     local whitelist_patterns=("$@")
 
-    $verbose && {
+    if $verbose; then
         echo "--- USB Wakeup Management ---"
         echo "Mode: $mode"
         echo "Dry Run: $dry_run"
-        echo "-----------------------------"
-    }
+        # テーブルのヘッダ
+        local line_w=94
+        print_line "$line_w"
+        printf "%-15s | %-28s | %-28s | %-5s | %-8s | %-s\n" \
+            "Device" "Product (for -w)" "Vendor" "Mouse" "Keyboard" "Action"
+        print_line "$line_w"
+    fi
 
     for dir in $USB_DEVICES_GLOB; do
         [[ -f "$dir/power/wakeup" ]] || continue
 
-        read -r is_mouse is_keyboard product_name < <(get_device_info "$dir")
+        local is_mouse is_keyboard product_name vendor_name
+        IFS=$'\t' read -r is_mouse is_keyboard product_name vendor_name < <(get_device_info "$dir")
+
+        # -w マッチは product_name のみで行う（lsusbのベンダ名とは切り離す）
         local is_whitelisted=false
         for pattern in "${whitelist_patterns[@]}"; do
             [[ "$product_name" == *"$pattern"* ]] && { is_whitelisted=true; break; }
@@ -141,9 +189,8 @@ process_usb_devices() {
         fi
 
         local wakeup_file="$dir/power/wakeup"
-        local current_state
-        current_state=$(<"$wakeup_file")
-        local action="ignore"
+        local current_state action="ignore"
+        current_state="$(<"$wakeup_file")"
 
         if $disable && [[ "$current_state" == "enabled" ]]; then
             action="disable"
@@ -157,9 +204,21 @@ process_usb_devices() {
             fi
         fi
 
-        $verbose && printf "Device: %-15s | Product: %-25s | Mouse: %-5s | Keyboard: %-5s | Action: %s\n" \
-            "$(basename "$dir")" "$product_name" "$is_mouse" "$is_keyboard" "$action"
+        if $verbose; then
+            printf "%-15s | %-28s | %-28s | %-5s | %-8s | %-s\n" \
+                "$(basename "$dir")" \
+                "$product_name" \
+                "$vendor_name" \
+                "$is_mouse" \
+                "$is_keyboard" \
+                "$action"
+        fi
     done
+
+    if $verbose; then
+        print_line 94
+        echo "Done."
+    fi
 }
 
 # ===== main =====
@@ -178,11 +237,28 @@ main() {
     if [[ -f "$CONFIG_FILE" ]]; then
         # shellcheck source=/dev/null
         source "$CONFIG_FILE"
-        # Config file can set: MODE, DRY_RUN, VERBOSE, WHITELIST_PATTERNS (as array)
+        # Config file can set: MODE, DRY_RUN, VERBOSE, WHITELIST_PATTERNS (string or array)
         mode="${MODE:-$mode}"
         dry_run=${DRY_RUN:-$dry_run}
         verbose=${VERBOSE:-$verbose}
-        whitelist_patterns=("${WHITELIST_PATTERNS[@]:-}")
+
+        # Reset to empty; then merge from config if provided
+        whitelist_patterns=()
+
+        # If WHITELIST_PATTERNS is defined in the config, ingest it safely
+        if declare -p WHITELIST_PATTERNS &>/dev/null; then
+            # Read its declaration to determine the type
+            if [[ "$(declare -p WHITELIST_PATTERNS 2>/dev/null)" =~ "declare -a" ]]; then
+                # Array
+                whitelist_patterns+=("${WHITELIST_PATTERNS[@]}")
+            else
+                # String (space-separated)
+                # shellcheck disable=SC2206
+                tmp=( ${WHITELIST_PATTERNS} )
+                whitelist_patterns+=("${tmp[@]}")
+                unset tmp
+            fi
+        fi
     fi
 
     # --- Parse command-line arguments (they override config file values) ---
@@ -195,7 +271,7 @@ main() {
             -w)
                 shift || error "-w requires an argument"
                 [[ -n "${1:-}" ]] || error "-w requires a non-empty argument"
-                whitelist_patterns+=("$1") # Append to patterns from config
+                whitelist_patterns+=("$1")
                 ;;
             -d) dry_run=true ;;
             -v) verbose=true ;;
@@ -210,8 +286,6 @@ main() {
     fi
 
     process_usb_devices "$mode" "$dry_run" "$verbose" "${whitelist_patterns[@]}"
-
-    $verbose && { echo "--------------------------"; echo "Done."; }
     return 0
 }
 
