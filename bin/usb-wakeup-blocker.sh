@@ -30,12 +30,14 @@ Options:
   -m           Block only mice (default).
   -c           Block both mice and keyboards.
   -w <name>    Whitelist USB device by product name (multiple allowed).
+               Use the "Product" field from -v output.
   -d           Dry run (show actions but do not apply changes).
   -v           Verbose output.
   -h           Show this help.
 
 Examples:
   usb-wakeup-blocker.sh -c -w "My Keyboard"
+  usb-wakeup-blocker.sh -m -w "USB Receiver"
 EOF
 }
 
