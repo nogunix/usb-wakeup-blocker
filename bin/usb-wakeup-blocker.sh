@@ -71,10 +71,10 @@ safe_write() {
 }
 
 # ===== USB helper =====
-# get_device_info の返り値（タブ区切り）:
+# Return value of get_device_info (tab-separated):
 #   is_mouse \t is_keyboard \t product_name \t vendor_name
-# - product_name … 「-w で使う」製品名（sysfsの product または lsusb -v の iProduct）
-# - vendor_name  … lsusb -v の idVendor 行末のベンダ名 or sysfs manufacturer
+# - product_name … Product name used for the -w option (from sysfs's product or lsusb -v's iProduct)
+# - vendor_name  … Vendor name from the end of the idVendor line in `lsusb -v`, or sysfs manufacturer
 declare -A DEVICE_INFO_CACHE
 get_device_info() {
     local device_dir="$1"
@@ -112,9 +112,9 @@ get_device_info() {
         lsusb_v_output=""
     fi
 
-    # Mouse/Keyboard detection + iProduct/vendor 抽出
+    # Detect Mouse/Keyboard and extract iProduct/vendor
     if [[ -n "$lsusb_v_output" ]]; then
-        # --- Mouse / Keyboard 判定 ---
+        # --- Mouse / Keyboard detection ---
         if grep -qiE 'Interface.*Keyboard|HID.*Keyboard|Protocol.*Keyboard|Protocol.*\(Keyboard\)' <<<"$lsusb_v_output"; then
             is_keyboard="true"
         fi
@@ -122,32 +122,30 @@ get_device_info() {
             is_mouse="true"
         fi
 
-        # --- iProduct の「製品名だけ」を抽出 ---
-        # 例: "  iProduct                2 USB Receiver" -> "USB Receiver"
+        # --- Extract only the product name from iProduct ---
         local ip
         ip="$(sed -nE 's/^[[:space:]]*iProduct[[:space:]]+[0-9]+[[:space:]]+(.+)$/\1/p' <<<"$lsusb_v_output" | head -n1)"
         [[ -n "$ip" ]] && product_name="$ip"
 
-        # --- idVendor の「ベンダ名だけ」を抽出 ---
-        # 例: "  idVendor           0x046d Logitech, Inc." -> "Logitech, Inc."
+        # --- Extract only the vendor name from idVendor ---
         local iv
         iv="$(sed -nE 's/^[[:space:]]*idVendor[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+(.+)$/\1/p' <<<"$lsusb_v_output" | head -n1)"
         [[ -n "$iv" ]] && vendor_name="$iv"
     fi
 
-    # ベンダ名が取れない場合のフォールバック（sysfs manufacturer）
+    # Fallback to sysfs manufacturer if vendor name is not available
     if [[ -z "$vendor_name" && -r "$device_dir/manufacturer" ]]; then
         vendor_name="$(<"$device_dir/manufacturer")"
     fi
     [[ -n "$vendor_name" ]] || vendor_name="(unknown vendor)"
     [[ -n "$product_name" ]] || product_name="(unknown product)"
 
-    # ★ 実タブで結合（$'\t'）★
+    # Join with a literal tab character ($'\t')
     DEVICE_INFO_CACHE["$device_dir"]="${is_mouse}"$'\t'"${is_keyboard}"$'\t'"${product_name}"$'\t'"${vendor_name}"
     echo "${DEVICE_INFO_CACHE[$device_dir]}"
 }
 
-# テーブル罫線生成（幅に合わせて棒線を出す）
+# Generate a table border line (draw a line matching the width)
 print_line() {
     local width="$1"
     printf '%*s\n' "$width" '' | tr ' ' '-'
@@ -162,7 +160,7 @@ process_usb_devices() {
         echo "--- USB Wakeup Management ---"
         echo "Mode: $mode"
         echo "Dry Run: $dry_run"
-        # テーブルのヘッダ
+        # Table header
         local line_w=94
         print_line "$line_w"
         printf "%-15s | %-28s | %-28s | %-5s | %-8s | %-s\n" \
@@ -176,7 +174,7 @@ process_usb_devices() {
         local is_mouse is_keyboard product_name vendor_name
         IFS=$'\t' read -r is_mouse is_keyboard product_name vendor_name < <(get_device_info "$dir")
 
-        # -w マッチは product_name のみで行う（lsusbのベンダ名とは切り離す）
+        # Match -w option only against product_name (separate from lsusb vendor name)
         local is_whitelisted=false
         for pattern in "${whitelist_patterns[@]}"; do
             [[ "$product_name" == *"$pattern"* ]] && { is_whitelisted=true; break; }
@@ -248,18 +246,18 @@ main() {
     # Reset and ingest from config (string or array)
     whitelist_patterns=()
 
-    # WHITELIST_PATTERNS は設定ファイル側のキー（大文字）。
-    # 小文字の whitelist_patterns は内部用バッファ（別物）です。
+    # WHITELIST_PATTERNS is the key from the config file (uppercase).
+    # The lowercase whitelist_patterns is an internal buffer (a different variable).
     # shellcheck disable=SC2153
     if declare -p WHITELIST_PATTERNS >/dev/null 2>&1; then
-        # 配列として定義されているかを判定
+        # Check if it is defined as an array
         # shellcheck disable=SC2153
         if declare -p WHITELIST_PATTERNS 2>/dev/null | grep -q '^declare \-a '; then
-            # 配列の場合
+            # If it's an array
             # shellcheck disable=SC2153
             { whitelist_patterns+=("${WHITELIST_PATTERNS[@]}"); }
         else
-            # 文字列（スペース区切り）の場合
+            # If it's a string (space-separated)
             # shellcheck disable=SC2153
             { read -r -a _tmp <<<"${WHITELIST_PATTERNS}"; }
             whitelist_patterns+=("${_tmp[@]}")
