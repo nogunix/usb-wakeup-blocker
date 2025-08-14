@@ -82,7 +82,10 @@ The configuration file is located at:
 /etc/usb-wakeup-blocker.conf
 ```
 
-Edit the `ARGS` variable to pass options to the script when started by systemd.
+### Service Arguments (systemd)
+
+Use the `ARGS` variable to pass command-line options to the script when it is
+started by systemd. This controls which USB devices are blocked.
 
 **Example: Block both mice and keyboards, but whitelist a specific keyboard**
 ```ini
@@ -93,11 +96,11 @@ You can find device names by running:
 sudo /usr/local/bin/usb-wakeup-blocker.sh -v
 ```
 
+### Script Variables
 
-### Direct script configuration
-
-The same file may define variables consumed by the script itself. Quote
-multi-word whitelist patterns so they remain intact when parsed:
+These variables are read directly by the script to set its default behaviour.
+Use them to define the mode and whitelist patterns. Quote multi-word whitelist
+patterns so they remain intact when parsed:
 
 ```ini
 MODE=combo
