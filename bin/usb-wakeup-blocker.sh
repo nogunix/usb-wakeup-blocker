@@ -245,6 +245,9 @@ main() {
     require_root
   fi
 
+  # Preserve original arguments for later use ("set --" below)
+  local -a args=("$@")
+
   # --- Defaults BEFORE loading config (avoid set -u on unset vars) ---
   local mode="$DEFAULT_MODE"
   local dry_run=false
@@ -266,8 +269,9 @@ main() {
       if declare -p WHITELIST_PATTERNS 2>/dev/null | grep -q '^declare \-a '; then
         WL_PATTERNS+=("${WHITELIST_PATTERNS[@]}")
       else
-        # Use eval to honour quoted multi-word entries
-        eval "WL_PATTERNS+=($WHITELIST_PATTERNS)"
+        # Use eval with "set --" so quoted multi-word entries remain distinct
+        eval "set -- $WHITELIST_PATTERNS"
+        WL_PATTERNS+=("$@")
       fi
     fi
     # Also accept lowercase key, if present
@@ -275,10 +279,14 @@ main() {
       if declare -p whitelist_patterns 2>/dev/null | grep -q '^declare \-a '; then
         WL_PATTERNS+=("${whitelist_patterns[@]}")
       else
-        eval "WL_PATTERNS+=($whitelist_patterns)"
+        eval "set -- $whitelist_patterns"
+        WL_PATTERNS+=("$@")
       fi
     fi
   fi
+
+  # Restore original arguments before processing CLI options
+  set -- "${args[@]}"
 
   # --- Parse command-line arguments (override config) ---
   while [[ $# -gt 0 ]]; do
