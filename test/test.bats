@@ -126,6 +126,32 @@ EOF
     unset CONFIG_FILE
 }
 
+@test "Config MODE=all with whitelist keeps keyboard enabled" {
+    # reset
+    echo enabled > "$MOCK_SYS_PATH/usb1/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb2/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb3/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb4/power/wakeup"
+
+    config_file="$BATS_TMPDIR/uwb-all.conf"
+    cat > "$config_file" <<'EOF'
+MODE=all
+WHITELIST_PATTERNS=("Keyboard Device")
+EOF
+    export CONFIG_FILE="$config_file"
+
+    run "$TEST_SCRIPT_PATH"
+    assert_success
+
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")" "disabled"
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb2/power/wakeup")" "enabled"  # Whitelisted
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb3/power/wakeup")" "disabled"
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb4/power/wakeup")" "disabled"
+
+    rm -f "$config_file"
+    unset CONFIG_FILE
+}
+
 @test "Dry run (-d): should not change any files" {
     # reset
     echo enabled > "$MOCK_SYS_PATH/usb1/power/wakeup"
