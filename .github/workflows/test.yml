@@ -35,4 +35,5 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck
 
       - name: Run ShellCheck
-        run: shellcheck bin/usb-wakeup-blocker.sh
+        run: |
+          find . -name "*.sh" -print0 | xargs -0 shellcheck
