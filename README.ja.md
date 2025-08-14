@@ -1,121 +1,99 @@
 # usb-wakeup-blocker
 
+Linux PCのスリープ復帰を、許可したUSBデバイスだけに制限するスクリプト & systemdサービス。
+
 [![CI](https://github.com/nogunix/usb-wakeup-blocker/actions/workflows/test.yml/badge.svg)](https://github.com/nogunix/usb-wakeup-blocker/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nogunix/usb-wakeup-blocker/blob/main/LICENSE)
 [![GitHub last commit](https://img.shields.io/github/last-commit/nogunix/usb-wakeup-blocker)](https://github.com/nogunix/usb-wakeup-blocker/commits/main)
 
 [English](./README.md) | [日本語](./README.ja.md)
 
-特定のUSBデバイスがスリープからコンピュータを復帰できるかどうかを制御するスクリプトとsystemdサービスです。
+---
 
-## 概要
+## このツールが必要になるとき
+ノートPCのフタを閉じたりスリープにしたのに、マウスにちょっと触れただけで復帰してしまったり、ランダムなUSB信号で勝手に起動してしまった経験はありませんか？
 
-多くのLinuxシステムでは、マウスやキーボードを含む多くのUSBデバイスがスリープ解除できる状態になっています。これにより、わずかなマウスの動きやUSBの電源変動で意図せず復帰してしまうことがあります。
+**usb-wakeup-blocker** は、どのUSBデバイスがスリープ復帰できるかを **完全にコントロール** できます。
+デフォルト設定では:
+- **マウスのみ** スリープ復帰をブロック
+- キーボードやその他のUSBデバイスはそのまま動作
 
-このプロジェクトは**ホワイトリスト方式**を採用しています。許可するデバイスを明示的に指定し、それ以外はすべてスリープ解除を無効化します。
+---
 
-### デフォルト動作
-
-デフォルトでは、**マウス**のみがスリープ解除できないように設定されます。他のデバイス（キーボードなど）は元の動作を維持します。
-
-## 特徴
-
-- **ホワイトリスト制御**: スリープ解除を許可するデバイスを明示的に指定可能。
-- **USBデバイス管理**: マウス、キーボードなどのUSBデバイスを制御。
-- **設定ファイルによる管理**: `/etc/usb-wakeup-blocker.conf`で簡単に設定。
-- **systemd統合**: 起動時に自動で適用。
-- **診断モード**: 詳細表示（`-v`）、ドライラン（`-d`）対応。
-
-## 必要要件
-
-- systemdを使用するLinuxシステム
-- `lsusb`コマンド（`usbutils`パッケージに含まれる）
-
-## インストール
+## クイックスタート（デフォルト: マウスのみブロック）
 
 ```bash
-# 1. リポジトリをクローン
 git clone https://github.com/nogunix/usb-wakeup-blocker.git
 cd usb-wakeup-blocker
-
-# 2. インストールスクリプト実行（管理者権限が必要）
 sudo ./install.sh
-```
-
-このスクリプトは以下を行います：
-
-1. メインスクリプトを`/usr/local/bin/`へコピー
-2. systemdサービスファイルを`/etc/systemd/system/`へコピー
-3. デフォルト設定ファイルを`/etc/usb-wakeup-blocker.conf`にコピー（存在しない場合）
-4. systemdデーモンを再読み込み
-
-**注意**: サービスは自動では有効化・起動されません。設定後に手動で有効化してください。
-
-## 簡単な使い方（設定ファイル編集不要）
-
-ほとんどのユーザーは設定ファイルを編集する必要はありません。インストール後、以下で有効化できます。
-
-```bash
 sudo systemctl enable --now usb-wakeup-blocker.service
 ```
 
-**デフォルト動作:**
-- マウスのみをブロック
-- キーボードなどは通常通り使用可能
+これで設定完了 ✅ — マウスでは復帰できなくなり、キーボードは今まで通り使用できます。
 
-設定変更は`/etc/usb-wakeup-blocker.conf`を編集してください。
+---
 
-## 設定方法
-
-設定は`/etc/usb-wakeup-blocker.conf`内の`ARGS`変数にコマンドライン引数を設定します。
-
-### モード選択
-
-以下のフラグを使用して、どのデバイスをブロックするかを選択します。
-
-* `-m`（デフォルト）: マウスのみブロック
-* `-c`: マウスとキーボードをブロック
-* `-a`: すべてのUSBデバイスをブロック
-
-**例:**
-```ini
-# /etc/usb-wakeup-blocker.conf
-ARGS='-c'
-```
-
-### ステップ1: デバイス名の確認
+## 出力例（詳細モード）
 
 ```bash
 sudo /usr/local/bin/usb-wakeup-blocker.sh -v
 ```
 
-出力例：
 ```
-Device: 1-2.2  | Product: USB Receiver              | Mouse: true  | Keyboard: true  | Action: ignore
-Device: 1-2.3  | Product: REALFORCE HYBRID JP FULL  | Mouse: false | Keyboard: true  | Action: ignore
+--- USB Wakeup Management ---
+Mode: mouse
+Dry Run: false
+-----------------------------
+Device: 1-2             | Product: USB2.1 Hub                | Mouse: false | Keyboard: false | Action: ignore
+Device: 1-2.2           | Product: USB Receiver              | Mouse: true  | Keyboard: true  | Action: ignore
+Device: 1-2.3           | Product: REALFORCE HYBRID JP FULL  | Mouse: false | Keyboard: true  | Action: ignore
+Device: 1-2.4           | Product: 2.4G Keyboard             | Mouse: true  | Keyboard: true  | Action: ignore
+Device: 2-2             | Product: USB3.1 Hub                | Mouse: false | Keyboard: false | Action: ignore
+Device: 3-3             | Product: ELAN:Fingerprint          | Mouse: false | Keyboard: false | Action: ignore
+Device: 3-4             | Product: (unknown product)         | Mouse: false | Keyboard: false | Action: ignore
+Device: usb1            | Product: xHCI Host Controller      | Mouse: false | Keyboard: false | Action: ignore
+Device: usb2            | Product: xHCI Host Controller      | Mouse: false | Keyboard: false | Action: ignore
+Device: usb3            | Product: xHCI Host Controller      | Mouse: false | Keyboard: false | Action: ignore
+Device: usb4            | Product: xHCI Host Controller      | Mouse: false | Keyboard: false | Action: ignore
+--------------------------
+Done.
 ```
 
-### ステップ2: 設定ファイル編集
+---
 
-```bash
-sudo nano /etc/usb-wakeup-blocker.conf
+## オプション一覧
+
+| フラグ | 説明 | デフォルト |
+|--------|------|------------|
+| `-m` | マウスのみスリープ復帰をブロック | ✅ |
+| `-c` | マウスとキーボード両方をブロック | ❌ |
+| `-a` | 全USBデバイスをブロック | ❌ |
+| `-w "NAME"` | デバイス名でホワイトリスト登録（複数指定可） | ❌ |
+| `-v` | 詳細出力モード | ❌ |
+| `-d` | ドライランモード（変更なし） | ❌ |
+
+---
+
+## 設定方法
+
+設定ファイルの場所:
+```
+/etc/usb-wakeup-blocker.conf
 ```
 
-#### ホワイトリスト構文
+`ARGS` 変数にオプションを設定します。systemdで起動する際にスクリプトへ渡されます。
 
-* USBデバイス: `-w "製品名"`
-* 複数登録する場合は`-w`を複数回追加
-
-**例: 特定のキーボードを許可**
+**例: マウスとキーボードをブロックし、特定のキーボードを許可**
 ```ini
-ARGS='-w "REALFORCE HYBRID JP FULL"'
+ARGS='-c -w "REALFORCE HYBRID JP FULL"'
 ```
 
-### ステップ3: サービス再起動
-
+設定変更後はサービスを再起動:
 ```bash
 sudo systemctl restart usb-wakeup-blocker.service
 ```
+
+---
 
 ## アンインストール
 
@@ -123,31 +101,39 @@ sudo systemctl restart usb-wakeup-blocker.service
 sudo ./uninstall.sh
 ```
 
-これにより、サービス停止と関連ファイルの削除を行います。
+削除されるもの:
+- インストールされたスクリプト
+- systemdサービスファイル
+- 設定ファイル
+
+---
 
 ## トラブルシューティング
 
-サービス状態確認：
-```bash
-systemctl status usb-wakeup-blocker.service
-```
-ログ確認：
-```bash
-journalctl -u usb-wakeup-blocker.service
-```
+### よくある問題と対策
 
-## 開発とテスト
+| 問題 | 原因 | 対策 |
+|------|------|------|
+| `lsusb: command not found` | `usbutils` が未インストール | Fedora: `sudo dnf install usbutils` / Debian系: `sudo apt install usbutils` |
+| 詳細モードで何も表示されない | `sudo` なしで実行 | `sudo` を付けて実行 |
+| 再起動後に設定が戻る | サービスが有効化されていない | `sudo systemctl enable usb-wakeup-blocker.service` |
 
-自動テスト実行：
+---
+
+## 開発・テスト
+
+テストスイート実行:
 ```bash
 ./test/run-tests.sh
 ```
 
-ShellCheckでLint：
+ShellCheckでスクリプトを検証:
 ```bash
 shellcheck bin/usb-wakeup-blocker.sh
 ```
 
+---
+
 ## ライセンス
 
-MITライセンス。詳細は[LICENSE](LICENSE)参照。
+MIT License - 詳細は [LICENSE](LICENSE) を参照
