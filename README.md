@@ -33,34 +33,6 @@ You're done ✅ — your mouse can no longer wake the system, but your keyboard 
 
 ---
 
-## Example Output (Verbose Mode)
-
-```bash
-sudo /usr/local/bin/usb-wakeup-blocker.sh -v
-```
-
-```
---- USB Wakeup Management ---
-Mode: mouse
-Dry Run: false
------------------------------
-Device: 1-2             | Product: USB2.1 Hub                | Mouse: false | Keyboard: false | Action: ignore
-Device: 1-2.2           | Product: USB Receiver              | Mouse: true  | Keyboard: true  | Action: ignore
-Device: 1-2.3           | Product: REALFORCE HYBRID JP FULL  | Mouse: false | Keyboard: true  | Action: ignore
-Device: 1-2.4           | Product: 2.4G Keyboard             | Mouse: true  | Keyboard: true  | Action: ignore
-Device: 2-2             | Product: USB3.1 Hub                | Mouse: false | Keyboard: false | Action: ignore
-Device: 3-3             | Product: ELAN:Fingerprint          | Mouse: false | Keyboard: false | Action: ignore
-Device: 3-4             | Product: (unknown product)         | Mouse: false | Keyboard: false | Action: ignore
-Device: usb1            | Product: xHCI Host Controller      | Mouse: false | Keyboard: false | Action: ignore
-Device: usb2            | Product: xHCI Host Controller      | Mouse: false | Keyboard: false | Action: ignore
-Device: usb3            | Product: xHCI Host Controller      | Mouse: false | Keyboard: false | Action: ignore
-Device: usb4            | Product: xHCI Host Controller      | Mouse: false | Keyboard: false | Action: ignore
---------------------------
-Done.
-```
-
----
-
 ## Options Overview
 
 | Flag | Description |
@@ -68,7 +40,7 @@ Done.
 | `-m` | Block only mice from waking the system *(default)* |
 | `-c` | Block both mice and keyboards |
 | `-a` | Block all USB devices |
-| `-w "NAME"` | Whitelist a device by product name (can be repeated) |
+| `-w "NAME"` | Whitelist a device by product name (can be repeated). Use the **Product** value shown in `-v` output |
 | `-v` | Verbose output for diagnostics |
 | `-d` | Dry-run mode (no changes made) |
 
@@ -86,7 +58,7 @@ Edit the `ARGS` variable to pass options to the script when started by systemd.
 
 **Example: Block both mice and keyboards, but whitelist a specific keyboard**
 ```ini
-ARGS='-c -w "REALFORCE HYBRID JP FULL"'
+ARGS='-c -w "My USB Keyboard"'
 ```
 
 Restart the service to apply:
