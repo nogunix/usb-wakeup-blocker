@@ -2,6 +2,12 @@
 # usb-wakeup-blocker.sh
 # Disable USB devices from waking up the system (with whitelist support)
 
+# If not running under bash, re-exec with bash (POSIX-safe)
+[ -n "${BASH_VERSION:-}" ] || exec /usr/bin/env bash "$0" "$@"
+
+set -euo pipefail
+IFS=$'\n\t'
+
 set -euo pipefail
 
 # ===== Constants =====
