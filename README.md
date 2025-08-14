@@ -96,6 +96,16 @@ You can find device names by running:
 sudo /usr/local/bin/usb-wakeup-blocker.sh -v
 ```
 
+To verify a product name before adding it to the configuration file, run a dry
+run with the desired whitelist pattern:
+
+```bash
+sudo /usr/local/bin/usb-wakeup-blocker.sh -d -w "My USB Keyboard"
+```
+
+The `-d` flag performs a trial run without modifying system settings, letting
+you confirm that the device is interpreted correctly.
+
 ### Script Variables
 
 These variables are read directly by the script to set its default behaviour.
