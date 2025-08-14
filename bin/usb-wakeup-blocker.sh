@@ -70,6 +70,10 @@ safe_write() {
     return 0
 }
 
+# ===== Table formatting (for -v) =====
+# Keep column widths centralized
+HEADER_FORMAT="%-15s | %-28s | %-28s | %-5s | %-8s | %-s\n"
+
 # ===== USB helper =====
 # Return value of get_device_info (tab-separated):
 #   is_mouse \t is_keyboard \t product_name \t vendor_name
@@ -145,10 +149,11 @@ get_device_info() {
     echo "${DEVICE_INFO_CACHE[$device_dir]}"
 }
 
-# Generate a table border line (draw a line matching the width)
+# Generate a table border line matching the header width
 print_line() {
-    local width="$1"
-    printf '%*s\n' "$width" '' | tr ' ' '-'
+    local line
+    line=$(printf "$HEADER_FORMAT" "Device" "Product (for -w)" "Vendor" "Mouse" "Keyboard" "Action")
+    printf '%*s\n' "${#line}" '' | tr ' ' '-'
 }
 
 process_usb_devices() {
@@ -161,11 +166,9 @@ process_usb_devices() {
         echo "Mode: $mode"
         echo "Dry Run: $dry_run"
         # Table header
-        local line_w=94
-        print_line "$line_w"
-        printf "%-15s | %-28s | %-28s | %-5s | %-8s | %-s\n" \
-            "Device" "Product (for -w)" "Vendor" "Mouse" "Keyboard" "Action"
-        print_line "$line_w"
+        print_line
+        printf "$HEADER_FORMAT" "Device" "Product (for -w)" "Vendor" "Mouse" "Keyboard" "Action"
+        print_line
     fi
 
     for dir in $USB_DEVICES_GLOB; do
