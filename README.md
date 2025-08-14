@@ -95,6 +95,8 @@ sudo systemctl restart usb-wakeup-blocker.service
 sudo ./uninstall.sh
 ```
 
+Run `./uninstall.sh --help` to see available options.
+
 Removes:
 - Installed script
 - systemd service file
