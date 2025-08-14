@@ -9,6 +9,7 @@ readonly -a VALID_MODES=(mouse all combo)
 # ===== Test-overridable paths =====
 # For tests, set:
 #   export USB_DEVICES_GLOB="/tmp/mock_sys_bus_usb/devices/*"
+CONFIG_FILE="${CONFIG_FILE:-/etc/usb-wakeup-blocker.conf}"
 USB_DEVICES_GLOB="${USB_DEVICES_GLOB:-/sys/bus/usb/devices/*}"
 
 # Safer globbing: if no match, expand to empty (not literal)
@@ -168,11 +169,23 @@ main() {
         require_root
     fi
 
+    # --- Load config file for default values ---
     local mode="$DEFAULT_MODE"
     local dry_run=false
     local verbose=false
     local -a whitelist_patterns=()
 
+    if [[ -f "$CONFIG_FILE" ]]; then
+        # shellcheck source=/dev/null
+        source "$CONFIG_FILE"
+        # Config file can set: MODE, DRY_RUN, VERBOSE, WHITELIST_PATTERNS (as array)
+        mode="${MODE:-$mode}"
+        dry_run=${DRY_RUN:-$dry_run}
+        verbose=${VERBOSE:-$verbose}
+        whitelist_patterns=("${WHITELIST_PATTERNS[@]:-}")
+    fi
+
+    # --- Parse command-line arguments (they override config file values) ---
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -h|--help) usage; exit 0 ;;
@@ -182,7 +195,7 @@ main() {
             -w)
                 shift || error "-w requires an argument"
                 [[ -n "${1:-}" ]] || error "-w requires a non-empty argument"
-                whitelist_patterns+=("$1")
+                whitelist_patterns+=("$1") # Append to patterns from config
                 ;;
             -d) dry_run=true ;;
             -v) verbose=true ;;
