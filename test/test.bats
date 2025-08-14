@@ -20,14 +20,11 @@ setup() {
     # 1) Define mock paths and create directories
     MOCK_ROOT="$BATS_TMPDIR/mockfs"
     MOCK_SYS_PATH="$MOCK_ROOT/sys/bus/usb/devices"
-    MOCK_PROC_FILE="$MOCK_ROOT/proc/acpi/wakeup"
     MOCK_BIN_PATH="$MOCK_ROOT/bin"
-    mkdir -p "$MOCK_SYS_PATH" "$(dirname "$MOCK_PROC_FILE")" "$MOCK_BIN_PATH"
+    mkdir -p "$MOCK_SYS_PATH" "$MOCK_BIN_PATH"
 
-    # 2) Override script's file paths with environment variables
+    # 2) Override script's file paths with environment variables (USB only)
     export USB_DEVICES_GLOB="${MOCK_SYS_PATH}/*"
-    export ACPI_WAKEUP_FILE="${MOCK_PROC_FILE}"
-    export ACPI_TOGGLE_LOG_FILE="${MOCK_PROC_FILE}.writes.log"
     export SKIP_ROOT_CHECK=1
 
     # 3) Create a mock 'lsusb' command (and prepend its dir to PATH)
@@ -56,16 +53,6 @@ EOF
     create_mock_usb_device "usb3" "1" "3" "enabled"   # Combo
     create_mock_usb_device "usb4" "1" "4" "enabled"   # Other
 
-    # 5) Create mock ACPI file
-    cat > "$MOCK_PROC_FILE" <<EOF
-Device	S-state	  Status   Sysfs node
-LID	  S4	*enabled
-PBTN	  S5	*enabled
-GPP0	  S4	*disabled
-EOF
-    # Initialize: create an empty write log
-    : > "${ACPI_TOGGLE_LOG_FILE}"
-
     # Script to be executed in tests
     TEST_SCRIPT_PATH="$SCRIPT_UNDER_TEST"
 }
@@ -83,6 +70,12 @@ EOF
 }
 
 @test "Combo mode (-c): should disable mouse and keyboard" {
+    # reset
+    echo enabled > "$MOCK_SYS_PATH/usb1/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb2/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb3/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb4/power/wakeup"
+
     run "$TEST_SCRIPT_PATH" -c
     assert_success
 
@@ -93,35 +86,41 @@ EOF
 }
 
 @test "Whitelist (-w): should keep whitelisted device enabled" {
+    # reset
+    echo enabled > "$MOCK_SYS_PATH/usb1/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb2/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb3/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb4/power/wakeup"
+
     run "$TEST_SCRIPT_PATH" -c -w "Keyboard Device"
     assert_success
 
     assert_equal "$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")" "disabled"
     assert_equal "$(cat "$MOCK_SYS_PATH/usb2/power/wakeup")" "enabled" # Whitelisted
     assert_equal "$(cat "$MOCK_SYS_PATH/usb3/power/wakeup")" "disabled"
-}
-
-@test "ACPI Whitelist (-p): should attempt to disable non-whitelisted ACPI devices" {
-    run "$TEST_SCRIPT_PATH" -p "LID"
-    assert_success
-
-    # PBTN should be changed from enabled to disabled, so check the log
-    assert_equal "$(cat "${ACPI_TOGGLE_LOG_FILE}")" "PBTN"
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb4/power/wakeup")" "enabled"
 }
 
 @test "Dry run (-d): should not change any files" {
-    # Save initial state
-    local initial_usb1
-    initial_usb1=$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")
-    local initial_acpi_writes
-    initial_acpi_writes=$(cat "${ACPI_TOGGLE_LOG_FILE}")
+    # reset
+    echo enabled > "$MOCK_SYS_PATH/usb1/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb2/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb3/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb4/power/wakeup"
 
-    run "$TEST_SCRIPT_PATH" -a -p "LID" -d -v
+    # capture initial states
+    initial_usb1="$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")"
+    initial_usb2="$(cat "$MOCK_SYS_PATH/usb2/power/wakeup")"
+    initial_usb3="$(cat "$MOCK_SYS_PATH/usb3/power/wakeup")"
+    initial_usb4="$(cat "$MOCK_SYS_PATH/usb4/power/wakeup")"
+
+    run "$TEST_SCRIPT_PATH" -a -d -v
     assert_success
-    assert_output --partial "Action: disable"
-    assert_output --partial "Dry Run: $dry_run" || assert_output --partial "Dry Run: true"
+    assert_output --partial "Dry Run: true"
 
-    # Verify that files have not been changed
+    # unchanged
     assert_equal "$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")" "$initial_usb1"
-    assert_equal "$(cat "${ACPI_TOGGLE_LOG_FILE}")" "$initial_acpi_writes"
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb2/power/wakeup")" "$initial_usb2"
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb3/power/wakeup")" "$initial_usb3"
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb4/power/wakeup")" "$initial_usb4"
 }

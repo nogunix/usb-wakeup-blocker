@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # usb-wakeup-blocker.sh
-# Disable USB/ACPI devices from waking up the system (with whitelist support)
+# Disable USB devices from waking up the system (with whitelist support)
 
 # ===== Constants =====
 readonly DEFAULT_MODE="mouse"   # mouse / all / combo
@@ -8,10 +8,7 @@ readonly -a VALID_MODES=(mouse all combo)
 
 # ===== Test-overridable paths =====
 # For tests, set:
-#   export ACPI_WAKEUP_FILE="/tmp/mock_proc_acpi_wakeup"
 #   export USB_DEVICES_GLOB="/tmp/mock_sys_bus_usb/devices/*"
-#   export ACPI_TOGGLE_LOG_FILE="/tmp/mock_proc_acpi_wakeup.writes.log"
-ACPI_WAKEUP_FILE="${ACPI_WAKEUP_FILE:-/proc/acpi/wakeup}"
 USB_DEVICES_GLOB="${USB_DEVICES_GLOB:-/sys/bus/usb/devices/*}"
 
 # Safer globbing: if no match, expand to empty (not literal)
@@ -32,13 +29,12 @@ Options:
   -m           Block only mice (default).
   -c           Block both mice and keyboards.
   -w <name>    Whitelist USB device by product name (multiple allowed).
-  -p <name>    Whitelist ACPI device by name (multiple allowed).
   -d           Dry run (show actions but do not apply changes).
   -v           Verbose output.
   -h           Show this help.
 
 Examples:
-  usb-wakeup-blocker.sh -c -w "My Keyboard" -p "LID"
+  usb-wakeup-blocker.sh -c -w "My Keyboard"
 EOF
 }
 
@@ -71,7 +67,7 @@ safe_write() {
     return 0
 }
 
-# ===== USB/ACPI helper =====
+# ===== USB helper =====
 declare -A DEVICE_INFO_CACHE
 get_device_info() {
     local device_dir="$1"
@@ -165,56 +161,6 @@ process_usb_devices() {
     done
 }
 
-process_acpi_devices() {
-    local dry_run=$1 verbose=$2
-    shift 2
-    local acpi_whitelist_patterns=("$@")
-
-    [[ ${#acpi_whitelist_patterns[@]} -eq 0 ]] && return
-
-    $verbose && {
-        echo
-        echo "--- ACPI Wakeup Management ---"
-        echo "------------------------------"
-    }
-
-    if [[ ! -f "$ACPI_WAKEUP_FILE" ]]; then
-        $verbose && echo "ACPI management skipped: $ACPI_WAKEUP_FILE not found."
-        return
-    fi
-
-    # ShellCheck SC2034: Read unused columns into _ to discard them.
-    while read -r device _ status _; do
-        status=${status#\*}
-        local is_whitelisted=false
-        for pattern in "${acpi_whitelist_patterns[@]}"; do
-            [[ "$device" == *"$pattern"* ]] && { is_whitelisted=true; break; }
-        done
-
-        local desired_state="disabled"
-        $is_whitelisted && desired_state="enabled"
-
-        local action="No change needed"
-        if [[ "$status" != "$desired_state" ]]; then
-            action="Toggling state"
-            if ! $dry_run; then
-                if ! echo "$device" > "$ACPI_WAKEUP_FILE" 2>/dev/null; then
-                    action="Toggle (failed)"
-                    $verbose && warning "ACPI toggle failed: $device"
-                else
-                    # Optional: test-only logging when ACPI_TOGGLE_LOG_FILE is set
-                    if [[ -n "${ACPI_TOGGLE_LOG_FILE:-}" ]]; then
-                        printf '%s\n' "$device" >> "$ACPI_TOGGLE_LOG_FILE"
-                    fi
-                fi
-            fi
-        fi
-
-        $verbose && printf "ACPI Device: %-10s | Current: %-8s | Desired: %-8s | Action: %s\n" \
-            "$device" "$status" "$desired_state" "$action"
-    done < <(tail -n +2 "$ACPI_WAKEUP_FILE")
-}
-
 # ===== main =====
 main() {
     # Allow tests to skip root check
@@ -226,7 +172,6 @@ main() {
     local dry_run=false
     local verbose=false
     local -a whitelist_patterns=()
-    local -a acpi_whitelist_patterns=()
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -238,11 +183,6 @@ main() {
                 shift || error "-w requires an argument"
                 [[ -n "${1:-}" ]] || error "-w requires a non-empty argument"
                 whitelist_patterns+=("$1")
-                ;;
-            -p)
-                shift || error "-p requires an argument"
-                [[ -n "${1:-}" ]] || error "-p requires a non-empty argument"
-                acpi_whitelist_patterns+=("$1")
                 ;;
             -d) dry_run=true ;;
             -v) verbose=true ;;
@@ -257,7 +197,6 @@ main() {
     fi
 
     process_usb_devices "$mode" "$dry_run" "$verbose" "${whitelist_patterns[@]}"
-    process_acpi_devices "$dry_run" "$verbose" "${acpi_whitelist_patterns[@]}"
 
     $verbose && { echo "--------------------------"; echo "Done."; }
     return 0
