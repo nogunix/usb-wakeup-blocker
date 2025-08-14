@@ -101,6 +101,31 @@ EOF
     assert_equal "$(cat "$MOCK_SYS_PATH/usb4/power/wakeup")" "enabled"
 }
 
+@test "Config WHITELIST_PATTERNS handles space-separated values" {
+    # reset
+    echo enabled > "$MOCK_SYS_PATH/usb1/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb2/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb3/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb4/power/wakeup"
+
+    config_file="$BATS_TMPDIR/uwb.conf"
+    cat > "$config_file" <<'EOF'
+MODE=combo
+WHITELIST_PATTERNS='Mouse Device Keyboard Device'
+EOF
+    export CONFIG_FILE="$config_file"
+
+    run "$TEST_SCRIPT_PATH"
+    assert_success
+
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")" "enabled"  # Whitelisted
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb2/power/wakeup")" "enabled"  # Whitelisted
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb3/power/wakeup")" "disabled"
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb4/power/wakeup")" "enabled"
+
+    unset CONFIG_FILE
+}
+
 @test "Dry run (-d): should not change any files" {
     # reset
     echo enabled > "$MOCK_SYS_PATH/usb1/power/wakeup"
