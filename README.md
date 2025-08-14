@@ -43,6 +43,20 @@ sudo ./install.sh
 sudo systemctl enable --now usb-wakeup-blocker.service
 ```
 
+Check that the service is running:
+
+```bash
+sudo systemctl status usb-wakeup-blocker.service
+```
+
+Example output:
+
+```
+● usb-wakeup-blocker.service - USB wakeup blocker
+     Loaded: loaded (/etc/systemd/system/usb-wakeup-blocker.service; enabled; preset: enabled)
+     Active: active (exited) since Thu 2024-01-01 00:00:00 UTC; 1s ago
+```
+
 You're done ✅ — your mouse can no longer wake the system, but your keyboard still works as before.
 
 ---
