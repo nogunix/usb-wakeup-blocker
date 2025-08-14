@@ -87,10 +87,6 @@ safe_write() {
   return 0
 }
 
-# ===== Table formatting (for -v) =====
-# Keep column widths centralized
-HEADER_FORMAT="%-15s | %-28s | %-28s | %-5s | %-8s | %-s\n"
-
 # ===== USB helper =====
 # Return value of get_device_info (tab-separated):
 # is_mouse \t is_keyboard \t product_name \t vendor_name
@@ -164,6 +160,10 @@ get_device_info() {
   DEVICE_INFO_CACHE["$device_dir"]="${is_mouse}"$'\t'"${is_keyboard}"$'\t'"${product_name}"$'\t'"${vendor_name}"
   echo "${DEVICE_INFO_CACHE[$device_dir]}"
 }
+
+# ===== Table formatting (for -v) =====
+# Keep column widths centralized
+readonly HEADER_FORMAT="%-15s | %-28s | %-28s | %-5s | %-8s | %-s\n"
 
 # Generate a table border line matching the header width
 print_line() {
