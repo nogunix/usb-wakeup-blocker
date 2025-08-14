@@ -111,7 +111,7 @@ EOF
     config_file="$BATS_TMPDIR/uwb.conf"
     cat > "$config_file" <<'EOF'
 MODE=combo
-WHITELIST_PATTERNS='Mouse Device Keyboard Device'
+WHITELIST_PATTERNS='"Mouse Device" "Keyboard Device"'
 EOF
     export CONFIG_FILE="$config_file"
 
