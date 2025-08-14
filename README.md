@@ -58,6 +58,11 @@ Edit the `ARGS` variable to pass options to the script when started by systemd.
 ```ini
 ARGS='-c -w "My USB Keyboard"'
 ```
+You can find device names by running:
+```bash
+  sudo /usr/local/bin/usb-wakeup-blocker.sh -v
+```
+
 
 Restart the service to apply:
 ```bash
