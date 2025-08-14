@@ -8,6 +8,12 @@ Prevent your Linux PC from waking up unexpectedly — with precise control over 
 
 ---
 
+## ⚠️ Disclaimer
+
+This project was created for the author's personal learning. As such, unexpected issues may arise. Please use it at your own risk.
+
+---
+
 ## Why you might need this
 Have you ever closed your laptop lid or put your PC to sleep, only for it to wake up instantly because you nudged your mouse — or due to a random USB signal?
 
