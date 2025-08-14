@@ -24,6 +24,16 @@ By default:
 
 ---
 
+## Prerequisites
+
+This project targets Linux systems that use **systemd** and requires the `usbutils` package so that `lsusb` is available. If `usbutils` isn't installed, add it, for example on Debian/Ubuntu:
+
+```bash
+sudo apt install usbutils
+```
+
+---
+
 ## Quick Start (default: block only mice)
 
 ```bash
