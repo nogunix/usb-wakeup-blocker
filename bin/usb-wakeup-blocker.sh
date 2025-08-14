@@ -124,11 +124,13 @@ get_device_info() {
 
         # --- iProduct の「製品名だけ」を抽出 ---
         # 例: "  iProduct                2 USB Receiver" -> "USB Receiver"
+        local ip
         ip="$(sed -nE 's/^[[:space:]]*iProduct[[:space:]]+[0-9]+[[:space:]]+(.+)$/\1/p' <<<"$lsusb_v_output" | head -n1)"
         [[ -n "$ip" ]] && product_name="$ip"
 
         # --- idVendor の「ベンダ名だけ」を抽出 ---
         # 例: "  idVendor           0x046d Logitech, Inc." -> "Logitech, Inc."
+        local iv
         iv="$(sed -nE 's/^[[:space:]]*idVendor[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+(.+)$/\1/p' <<<"$lsusb_v_output" | head -n1)"
         [[ -n "$iv" ]] && vendor_name="$iv"
     fi
@@ -144,7 +146,6 @@ get_device_info() {
     DEVICE_INFO_CACHE["$device_dir"]="${is_mouse}"$'\t'"${is_keyboard}"$'\t'"${product_name}"$'\t'"${vendor_name}"
     echo "${DEVICE_INFO_CACHE[$device_dir]}"
 }
-
 
 # テーブル罫線生成（幅に合わせて棒線を出す）
 print_line() {
@@ -230,40 +231,37 @@ main() {
         require_root
     fi
 
-    # --- Load config file for default values ---
+    # --- Set defaults BEFORE loading config (avoid set -u unbound vars) ---
     local mode="$DEFAULT_MODE"
     local dry_run=false
     local verbose=false
     local -a whitelist_patterns=()
 
+    # --- Load config file (override defaults) ---
     if [[ -f "$CONFIG_FILE" ]]; then
         # shellcheck source=/dev/null
         source "$CONFIG_FILE"
-        # Config file can set: MODE, DRY_RUN, VERBOSE, WHITELIST_PATTERNS (string or array)
         mode="${MODE:-$mode}"
         dry_run=${DRY_RUN:-$dry_run}
         verbose=${VERBOSE:-$verbose}
 
-        # Reset to empty; then merge from config if provided
+        # Reset and ingest from config (string or array)
         whitelist_patterns=()
 
-        # If WHITELIST_PATTERNS is defined in the config, ingest it safely
-        if declare -p WHITELIST_PATTERNS &>/dev/null; then
-            # Read its declaration to determine the type
-            if [[ "$(declare -p WHITELIST_PATTERNS 2>/dev/null)" =~ "declare -a" ]]; then
-                # Array
-                whitelist_patterns+=("${WHITELIST_PATTERNS[@]}")
-            else
-                # String (space-separated)
-                # shellcheck disable=SC2206
-                tmp=( ${WHITELIST_PATTERNS} )
-                whitelist_patterns+=("${tmp[@]}")
-                unset tmp
-            fi
+        # WHITELIST_PATTERNS は設定ファイル側のキー（大文字）。小文字の
+        # whitelist_patterns は内部用バッファ。意図的に別変数です。
+        # shellcheck disable=SC2153
+        if [[ $(declare -p WHITELIST_PATTERNS 2>/dev/null) =~ 'declare -a' ]]; then
+            whitelist_patterns+=("${WHITELIST_PATTERNS[@]}")
+        # shellcheck disable=SC2153
+        elif [[ ${WHITELIST_PATTERNS+set} == set ]]; then
+            read -r -a _tmp <<<"${WHITELIST_PATTERNS}"
+            whitelist_patterns+=("${_tmp[@]}")
+            unset _tmp
         fi
     fi
 
-    # --- Parse command-line arguments (they override config file values) ---
+    # --- Parse command-line arguments (override config) ---
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -h|--help) usage; exit 0 ;;
