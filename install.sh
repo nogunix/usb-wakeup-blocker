@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+if [[ $EUID -ne 0 ]]; then SUDO=sudo; else SUDO=; fi
+
 if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     echo "Usage: sudo $0"
     echo "Installs the usb-wakeup-blocker script and systemd service."
@@ -25,16 +27,16 @@ for f in "$SOURCE_BIN" "$SOURCE_CONFIG" "$SOURCE_SERVICE"; do
     fi
 done
 
-sudo install -Dm755 "$SOURCE_BIN" "$BIN"
-sudo install -d "$CONFIG_DIR"
+${SUDO} install -Dm755 "$SOURCE_BIN" "$BIN"
+${SUDO} install -d "$CONFIG_DIR"
 # Install config file only if it doesn't exist to preserve user changes.
 # Using a test condition for better portability instead of the non-standard -n flag.
 if [ ! -f "$CONFIG_FILE" ]; then
-    sudo install -m644 "$SOURCE_CONFIG" "$CONFIG_FILE"
+    ${SUDO} install -m644 "$SOURCE_CONFIG" "$CONFIG_FILE"
 fi
-sudo install -Dm644 "$SOURCE_SERVICE" "$SERVICE"
+${SUDO} install -Dm644 "$SOURCE_SERVICE" "$SERVICE"
 
-sudo systemctl daemon-reload
+${SUDO} systemctl daemon-reload
 
 echo "Installed successfully."
 echo "Configuration file template created at '/etc/usb-wakeup-blocker.conf'."
