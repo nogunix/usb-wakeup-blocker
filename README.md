@@ -70,6 +70,18 @@ sudo /usr/local/bin/usb-wakeup-blocker.sh -v
 ```
 
 
+### Direct script configuration
+
+The same file may define variables consumed by the script itself. Quote
+multi-word whitelist patterns so they remain intact when parsed:
+
+```ini
+MODE=combo
+WHITELIST_PATTERNS='"Mouse Device" "Keyboard Device"'
+```
+
+Each entry is matched against the device's `Product` name.
+
 Restart the service to apply:
 ```bash
 sudo systemctl restart usb-wakeup-blocker.service
