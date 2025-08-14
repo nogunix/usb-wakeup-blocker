@@ -266,12 +266,8 @@ main() {
       if declare -p WHITELIST_PATTERNS 2>/dev/null | grep -q '^declare \-a '; then
         WL_PATTERNS+=("${WHITELIST_PATTERNS[@]}")
       else
-        local OLDIFS=$IFS
-        IFS=$' \t\n'
-        read -r -a _tmp <<<"$WHITELIST_PATTERNS"
-        IFS=$OLDIFS
-        WL_PATTERNS+=("${_tmp[@]}")
-        unset _tmp
+        # Use eval to honour quoted multi-word entries
+        eval "WL_PATTERNS+=($WHITELIST_PATTERNS)"
       fi
     fi
     # Also accept lowercase key, if present
@@ -279,12 +275,7 @@ main() {
       if declare -p whitelist_patterns 2>/dev/null | grep -q '^declare \-a '; then
         WL_PATTERNS+=("${whitelist_patterns[@]}")
       else
-        local OLDIFS=$IFS
-        IFS=$' \t\n'
-        read -r -a _tmp2 <<<"$whitelist_patterns"
-        IFS=$OLDIFS
-        WL_PATTERNS+=("${_tmp2[@]}")
-        unset _tmp2
+        eval "WL_PATTERNS+=($whitelist_patterns)"
       fi
     fi
   fi
