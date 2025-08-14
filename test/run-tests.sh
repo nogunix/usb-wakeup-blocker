@@ -26,8 +26,20 @@ else
     trap 'rm -rf "${TMP_BATS_DIR}"' EXIT
     BATS_VERSION="${BATS_VERSION:-v1.11.0}"
     ARCHIVE_URL="https://github.com/bats-core/bats-core/archive/refs/tags/${BATS_VERSION}.tar.gz"
-    curl -fsSL "${ARCHIVE_URL}" -o "${TMP_BATS_DIR}/bats.tar.gz"
-    tar -xzf "${TMP_BATS_DIR}/bats.tar.gz" -C "${TMP_BATS_DIR}"
+    if ! command -v curl >/dev/null 2>&1; then
+      echo "[error] curl is required to download bats-core." >&2
+      exit 1
+    fi
+    curl -fsSL "${ARCHIVE_URL}" -o "${TMP_BATS_DIR}/bats.tar.gz" || {
+      curl_status=$?
+      echo "[error] failed to download bats-core archive (curl exit code ${curl_status})." >&2
+      exit "${curl_status}"
+    }
+    tar -xzf "${TMP_BATS_DIR}/bats.tar.gz" -C "${TMP_BATS_DIR}" || {
+      tar_status=$?
+      echo "[error] failed to extract bats-core archive (tar exit code ${tar_status})." >&2
+      exit "${tar_status}"
+    }
     PORTABLE_DIR="$(find "${TMP_BATS_DIR}" -maxdepth 1 -type d -name "bats-core-*")"
     BATS_BIN="${PORTABLE_DIR}/bin/bats"
   fi
