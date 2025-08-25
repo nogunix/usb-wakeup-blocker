@@ -98,7 +98,7 @@ ARGS='-c -w "My USB Keyboard"'
 ```
 You can find device names by running:
 ```bash
-sudo /usr/local/bin/usb-wakeup-blocker.sh -v
+sudo /usr/bin/usb-wakeup-blocker.sh -v
 ```
 
 To verify a product name before adding it to the configuration file, run a dry

@@ -13,8 +13,8 @@ fi
 if [[ $EUID -ne 0 ]]; then SUDO=sudo; else SUDO=; fi
 set -euo pipefail
 
-BIN="/usr/local/bin/usb-wakeup-blocker.sh"
-SERVICE="/etc/systemd/system/usb-wakeup-blocker.service"
+BIN="/usr/bin/usb-wakeup-blocker.sh"
+SERVICE="/usr/lib/systemd/system/usb-wakeup-blocker.service"
 CONFIG_FILE="/etc/usb-wakeup-blocker.conf"
 
 ${SUDO} systemctl disable --now usb-wakeup-blocker.service || true
