@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        A script and systemd service to precisely control which devices can wake a Linux system from sleep.
 License:        MIT
 URL:            https://github.com/nogunix/usb-wakeup-blocker
-Source0:        %{name}-%{version}.tar.gz
+Source0:        https://github.com/nogunix/usb-wakeup-blocker/archive/refs/tags/v%{version}.tar.gz
 BuildArch:      noarch
 
 %description
