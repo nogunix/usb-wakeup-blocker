@@ -47,7 +47,7 @@ Example output:
 
 ```
 ● usb-wakeup-blocker.service - USB wakeup blocker
-     Loaded: loaded (/etc/systemd/system/usb-wakeup-blocker.service; enabled; preset: enabled)
+     Loaded: loaded (/usr/lib/systemd/system/usb-wakeup-blocker.service; enabled; preset: enabled)
      Active: active (exited) since Thu 2024-01-01 00:00:00 UTC; 1s ago
 ```
 
@@ -105,7 +105,7 @@ To verify a product name before adding it to the configuration file, run a dry
 run with the desired whitelist pattern:
 
 ```bash
-sudo /usr/local/bin/usb-wakeup-blocker.sh -d -w "My USB Keyboard"
+sudo /usr/bin/usb-wakeup-blocker.sh -d -w "My USB Keyboard"
 ```
 
 The `-d` flag performs a trial run without modifying system settings, letting
