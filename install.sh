@@ -10,11 +10,11 @@ fi
 
 set -euo pipefail
 
-PREFIX="/usr/local"
+PREFIX="/usr"
 BIN="$PREFIX/bin/usb-wakeup-blocker.sh"
 CONFIG_DIR="/etc"
 CONFIG_FILE="$CONFIG_DIR/usb-wakeup-blocker.conf"
-SERVICE="/etc/systemd/system/usb-wakeup-blocker.service"
+SERVICE="$PREFIX/lib/systemd/system/usb-wakeup-blocker.service"
 
 SOURCE_BIN="bin/usb-wakeup-blocker.sh"
 SOURCE_CONFIG="etc/usb-wakeup-blocker.conf"
