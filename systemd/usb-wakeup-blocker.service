@@ -6,7 +6,7 @@ Wants=systemd-udev-settle.service
 [Service]
 Type=oneshot
 EnvironmentFile=-/etc/usb-wakeup-blocker.conf
-ExecStart=/usr/local/bin/usb-wakeup-blocker.sh $ARGS
+ExecStart=/usr/bin/usb-wakeup-blocker.sh $ARGS
 RemainAfterExit=yes
 
 [Install]
