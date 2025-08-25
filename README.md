@@ -57,7 +57,7 @@ You're done ✅ — your mouse can no longer wake the system, but your keyboard 
 
 ## Installation via COPR
 
-For Fedora and RHEL-based distributions, you can install `usb-wakeup-blocker` from the COPR repository:
+For Fedora, you can install `usb-wakeup-blocker` from the COPR repository:
 
 ```bash
 sudo dnf copr enable nogunix/usb-wakeup-blocker
