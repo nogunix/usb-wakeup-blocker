@@ -1,5 +1,5 @@
 Name:           usb-wakeup-blocker
-Version:        1.0.0
+Version:        1.0.1
 Release:        1%{?dist}
 Summary:        A script and systemd service to precisely control which devices can wake a Linux system from sleep.
 License:        MIT
@@ -33,5 +33,7 @@ install -m 0644 systemd/usb-wakeup-blocker.service %{buildroot}/usr/lib/systemd/
 /usr/lib/systemd/system/usb-wakeup-blocker.service
 
 %changelog
+* Tue Aug 26 2025 Nogunix <nogunix@gmail.com> - 1.0.1-1
+- Update version to 1.0.1
 * Mon Aug 25 2025 Nogunix <nogunix@gmail.com> - 1.0.0-1
 - Initial package
