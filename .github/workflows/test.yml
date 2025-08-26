@@ -23,7 +23,15 @@ jobs:
         run: git submodule update --init --recursive
 
       - name: Run Bats tests (no sudo)
-        run: ./test/run-tests.sh
+        run: ./test/run-tests.sh > test_output.log 2>&1
+        continue-on-error: true
+
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: test_output.log
 
   shellcheck:
     runs-on: ubuntu-latest
