@@ -46,7 +46,9 @@ jobs:
           path: test_coverage_output
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
         with:
           files: ./test_coverage_output/cobertura.xml # kcov generates cobertura.xml by default
           fail_ci_if_error: true # Optional: Don't fail CI if Codecov upload fails
