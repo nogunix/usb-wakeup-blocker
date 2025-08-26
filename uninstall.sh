@@ -19,9 +19,11 @@ CONFIG_FILE="/etc/usb-wakeup-blocker.conf"
 
 ${SUDO} systemctl disable --now usb-wakeup-blocker.service || true
 ${SUDO} rm -f "$SERVICE"
+${SUDO} rm -f "/etc/systemd/system/usb-wakeup-blocker.service" || true
 ${SUDO} systemctl daemon-reload
 
 ${SUDO} rm -f "$BIN"
+${SUDO} rm -f "/usr/local/bin/usb-wakeup-blocker.sh" || true
 ${SUDO} rm -f "$CONFIG_FILE"
 
 echo "Uninstalled."
