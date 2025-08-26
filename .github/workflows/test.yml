@@ -36,7 +36,7 @@ jobs:
           sudo make install
 
       - name: Run Bats tests with kcov
-        run: kcov test_coverage_output ./test/run-tests.sh > test_output.log 2>&1
+        run: kcov --include-path=bin/usb-wakeup-blocker.sh --exclude-pattern=test/ --exclude-pattern=/usr/share/kcov/ test_coverage_output ./test/run-tests.sh > test_output.log 2>&1
         continue-on-error: true
 
       - name: Upload kcov coverage report
