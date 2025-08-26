@@ -22,9 +22,18 @@ jobs:
       - name: Init submodules (recursive)
         run: git submodule update --init --recursive
 
-      - name: Run Bats tests (no sudo)
-        run: ./test/run-tests.sh > test_output.log 2>&1
+      - name: Install kcov
+        run: sudo apt-get install kcov
+
+      - name: Run Bats tests with kcov
+        run: kcov test_coverage_output ./test/run-tests.sh > test_output.log 2>&1
         continue-on-error: true
+
+      - name: Upload kcov coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: kcov-report
+          path: test_coverage_output
 
       - name: Upload test logs on failure
         if: failure()
