@@ -131,6 +131,54 @@ sudo systemctl restart usb-wakeup-blocker.service
 
 ---
 
+## Logging and Recovery
+
+### Execution Logs and Granularity
+
+*   **Standard Output/Error**: The script logs its operations, warnings, and errors to standard output and standard error. When run as a `systemd` service, these logs are captured by the systemd journal. You can view them using `journalctl -u usb-wakeup-blocker.service`.
+*   **Verbose Mode (`-v`)**: For detailed insights into device detection and intended actions, run the script with the `-v` flag. This provides a tabular summary of all detected USB devices, their types (mouse/keyboard), product/vendor names, and the action (enable/disable/ignore) that would be applied.
+
+### Dry Run Example
+
+To see exactly what changes the script *would* make without actually applying them, use the `-d` (dry-run) flag. Combine it with `-v` for a detailed report.
+
+Example: `sudo /usr/bin/usb-wakeup-blocker.sh -d -v`
+
+```
+--- USB Wakeup Management ---
+Mode: mouse
+Dry Run: true
+----------------------------------------------------------------------------------------------------------
+Device          | Product (for -w)             | Vendor                       | Mouse | Keyboard | Action
+----------------------------------------------------------------------------------------------------------
+1-2             | USB2.1 Hub                   | Genesys Logic, Inc.          | false | false    | ignore
+1-2.2           | USB Receiver                 | Logitech, Inc.               | true  | true     | ignore
+1-2.3           | REALFORCE HYBRID JP FULL     | Topre Corporation            | false | true     | ignore
+1-2.4           | 2.4G Keyboard                | SHARKOON Technologies GmbH   | true  | true     | ignore
+2-2             | USB3.1 Hub                   | Genesys Logic, Inc.          | false | false    | ignore
+3-3             | ELAN:Fingerprint             | Elan Microelectronics Corp.  | false | false    | ignore
+3-4             | (unknown product)            | Intel Corp.                  | false | false    | ignore
+usb1            | xHCI Host Controller         | Linux Foundation             | false | false    | ignore
+usb2            | xHCI Host Controller         | Linux Foundation             | false | false    | ignore
+usb3            | xHCI Host Controller         | Linux Foundation             | false | false    | ignore
+usb4            | xHCI Host Controller         | Linux Foundation             | false | false    | ignore
+----------------------------------------------------------------------------------------------------------
+Done.
+```
+
+### Recovery on Failure
+
+The `usb-wakeup-blocker.sh` script modifies the `power/wakeup` attribute of USB devices in the `/sys/bus/usb/devices/` directory. If you need to revert changes or restore devices to their original wakeup state, consider the following:
+
+*   **Re-enabling all devices**: To re-enable wakeup for all USB devices, you can manually write `enabled` to their `power/wakeup` files.
+    ```bash
+    for i in /sys/bus/usb/devices/*/power/wakeup; do echo enabled | sudo tee $i; done
+    ```
+    *Note: This command will re-enable wakeup for ALL USB devices, including those you might have intentionally blocked.*
+*   **Uninstalling the service**: If you wish to completely remove the `usb-wakeup-blocker` service and its configuration, use the `uninstall.sh` script. This will stop the service and remove its files, but will *not* automatically revert the `power/wakeup` states of individual devices. You may need to manually re-enable devices as described above after uninstallation.
+
+---
+
 ## Uninstallation
 
 ```bash
