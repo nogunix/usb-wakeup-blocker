@@ -226,3 +226,7 @@ shellcheck bin/usb-wakeup-blocker.sh
 ## License
 
 MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+This is a personal project and is not affiliated with my employer.
