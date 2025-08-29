@@ -7,7 +7,6 @@
 
 Prevent your Linux PC from waking up unexpectedly — with precise control over which USB devices are allowed to do so.
 
----
 
 ## Why you might need this
 Have you ever closed your laptop lid or put your PC to sleep, only for it to wake up instantly because you nudged your mouse — or due to a random USB signal?
@@ -17,7 +16,6 @@ By default:
 - Blocks **only mice** from waking the system.
 - Keyboards and other devices remain unaffected.
 
----
 
 ## Prerequisites
 
@@ -27,7 +25,6 @@ This project targets Linux systems that use **systemd** and requires the `usbuti
 sudo apt install usbutils
 ```
 
----
 
 ## Quick Start (default: block only mice)
 
@@ -54,7 +51,6 @@ Example output:
 
 You're done ✅ — your mouse can no longer wake the system, but your keyboard still works as before.
 
----
 
 ## Installation via COPR
 
@@ -65,7 +61,6 @@ sudo dnf copr enable nogunix/usb-wakeup-blocker
 sudo dnf install usb-wakeup-blocker
 ```
 
----
 
 ## Options Overview
 
@@ -78,7 +73,6 @@ sudo dnf install usb-wakeup-blocker
 | `-v` | Verbose output for diagnostics |
 | `-d` | Dry-run mode (no changes made) |
 
----
 
 ## Configuration
 
@@ -130,7 +124,6 @@ Restart the service to apply:
 sudo systemctl restart usb-wakeup-blocker.service
 ```
 
----
 
 ## Logging and Recovery
 
@@ -178,7 +171,6 @@ The `usb-wakeup-blocker.sh` script modifies the `power/wakeup` attribute of USB 
     *Note: This command will re-enable wakeup for ALL USB devices, including those you might have intentionally blocked.*
 *   **Uninstalling the service**: If you wish to completely remove the `usb-wakeup-blocker` service and its configuration, use the `uninstall.sh` script. This will stop the service and remove its files, but will *not* automatically revert the `power/wakeup` states of individual devices. You may need to manually re-enable devices as described above after uninstallation.
 
----
 
 ## Uninstallation
 
@@ -193,7 +185,6 @@ Removes:
 - systemd service file
 - Configuration file
 
----
 
 ## Troubleshooting
 
@@ -205,7 +196,6 @@ Removes:
 | No devices listed in verbose mode | Script run without `sudo` | Run with `sudo` |
 | Settings revert after reboot | Service not enabled | `sudo systemctl enable usb-wakeup-blocker.service` |
 
----
 
 ## Development & Testing
 
@@ -221,12 +211,10 @@ Check shell script with ShellCheck:
 shellcheck bin/usb-wakeup-blocker.sh
 ```
 
----
 
 ## License
 
 MIT License - see the [LICENSE](LICENSE) file for details.
 
----
 
 This is my personal project. It is created and maintained in my personal capacity, and has no relation to my employer's business or confidential information.
