@@ -14,7 +14,7 @@ A script and systemd service to precisely control which devices can wake a Linux
 %setup -q
 
 %build
-# シェルスクリプトなのでコンパイルは不要です
+# Since it's a shell script, compilation is not necessary.
 
 %install
 mkdir -p %{buildroot}/usr/bin
