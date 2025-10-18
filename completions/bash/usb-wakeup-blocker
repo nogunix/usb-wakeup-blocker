@@ -1,0 +1,51 @@
+# Bash completion for usb-wakeup-blocker(.sh)
+
+_usb_wakeup_blocker_whitelist_candidates() {
+  local conf="/etc/usb-wakeup-blocker.conf"
+  local -a candidates=()
+
+  if [[ -r "$conf" ]]; then
+    while IFS= read -r entry; do
+      candidates+=("$entry")
+    done < <(grep -oE '-w[[:space:]]+"[^"]+"' "$conf" 2>/dev/null \
+             | sed -E 's/.*-w[[:space:]]*"([^"]+)".*/\1/')
+  fi
+
+  if command -v lsusb >/dev/null 2>&1; then
+    while IFS= read -r entry; do
+      [[ -n "$entry" ]] && candidates+=("$entry")
+    done < <(lsusb 2>/dev/null \
+             | sed -E 's/^.*ID[[:space:]][^[:space:]]+[[:space:]][^[:space:]]+[[:space:]]*//')
+  fi
+
+  printf '%s\n' "${candidates[@]}" | awk 'NF' | sort -u
+}
+
+_usb_wakeup_blocker_complete() {
+  local cur prev opts
+  COMPREPLY=()
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]:-}"
+  opts="-a -m -c -w -d -v -h --help"
+
+  if [[ "$prev" == "-w" ]]; then
+    local -a suggestions=()
+    while IFS= read -r entry; do
+      suggestions+=("$entry")
+    done < <(_usb_wakeup_blocker_whitelist_candidates)
+
+    if ((${#suggestions[@]})); then
+      local quoted=""
+      local entry
+      for entry in "${suggestions[@]}"; do
+        quoted+=$(printf '%q ' "$entry")
+      done
+      COMPREPLY=($(compgen -W "$quoted" -- "$cur"))
+      return 0
+    fi
+  fi
+
+  COMPREPLY=($(compgen -W "$opts" -- "$cur"))
+}
+
+complete -F _usb_wakeup_blocker_complete usb-wakeup-blocker usb-wakeup-blocker.sh

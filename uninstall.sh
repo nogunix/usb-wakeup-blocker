@@ -16,6 +16,8 @@ set -euo pipefail
 BIN="/usr/bin/usb-wakeup-blocker.sh"
 SERVICE="/usr/lib/systemd/system/usb-wakeup-blocker.service"
 CONFIG_FILE="/etc/usb-wakeup-blocker.conf"
+BASH_COMPLETION="/usr/share/bash-completion/completions/usb-wakeup-blocker"
+ZSH_COMPLETION="/usr/share/zsh/site-functions/_usb-wakeup-blocker"
 
 ${SUDO} systemctl disable --now usb-wakeup-blocker.service || true
 ${SUDO} rm -f "$SERVICE"
@@ -25,7 +27,8 @@ ${SUDO} systemctl daemon-reload
 ${SUDO} rm -f "$BIN"
 ${SUDO} rm -f "/usr/local/bin/usb-wakeup-blocker.sh" || true
 ${SUDO} rm -f "$CONFIG_FILE"
+${SUDO} rm -f "$BASH_COMPLETION"
+${SUDO} rm -f "$ZSH_COMPLETION"
 
 echo "Uninstalled."
 echo "A reboot is recommended to fully revert changes to wakeup settings."
-
