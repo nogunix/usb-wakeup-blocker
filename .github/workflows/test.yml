@@ -72,3 +72,59 @@ jobs:
       - name: Run ShellCheck
         run: |
           find . -name "*.sh" -print0 | xargs -0 shellcheck
+
+  install-uninstall:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test install/uninstall in systemd container
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          container_id=$(docker run --detach --rm \
+            --privileged \
+            --cgroupns=host \
+            --tmpfs /run --tmpfs /tmp \
+            -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+            -v "$PWD":/src \
+            -w /src \
+            jrei/systemd-ubuntu:24.04 \
+            /sbin/init)
+
+          cleanup() {
+            docker stop "$container_id" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker exec --workdir /src "$container_id" bash -lc '
+            set -euo pipefail
+
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y sudo bash-completion usbutils
+
+            chmod +x install.sh uninstall.sh
+
+            sudo ./install.sh
+
+            test -x /usr/bin/usb-wakeup-blocker.sh
+            test -f /usr/lib/systemd/system/usb-wakeup-blocker.service
+            test -f /usr/share/bash-completion/completions/usb-wakeup-blocker
+            test -f /usr/share/zsh/site-functions/_usb-wakeup-blocker
+            test -f /etc/usb-wakeup-blocker.conf
+            systemctl cat usb-wakeup-blocker.service >/dev/null
+
+            sudo ./uninstall.sh
+
+            test ! -e /usr/bin/usb-wakeup-blocker.sh
+            test ! -e /usr/lib/systemd/system/usb-wakeup-blocker.service
+            test ! -e /usr/share/bash-completion/completions/usb-wakeup-blocker
+            test ! -e /usr/share/zsh/site-functions/_usb-wakeup-blocker
+            test ! -e /etc/usb-wakeup-blocker.conf
+            if systemctl cat usb-wakeup-blocker.service >/dev/null 2>&1; then
+              echo "Service still present after uninstall" >&2
+              exit 1
+            fi
+          '
