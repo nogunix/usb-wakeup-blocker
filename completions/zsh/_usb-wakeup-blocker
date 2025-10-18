@@ -1,0 +1,33 @@
+#compdef usb-wakeup-blocker usb-wakeup-blocker.sh
+# Zsh completion for usb-wakeup-blocker(.sh)
+
+_usb_wakeup_blocker_whitelist() {
+  local -a candidates=()
+
+  if [[ -r /etc/usb-wakeup-blocker.conf ]]; then
+    candidates+=(${(f)"$(grep -oE '-w[[:space:]]+\"[^\"]+\"' /etc/usb-wakeup-blocker.conf 2>/dev/null \
+                      | sed -E 's/.*-w[[:space:]]*\"([^\"]+)\".*/\1/')"})
+  fi
+
+  if (( $+commands[lsusb] )); then
+    candidates+=(${(f)"$(lsusb 2>/dev/null \
+                      | sed -E 's/^.*ID[[:space:]][^[:space:]]+[[:space:]][^[:space:]]+[[:space:]]*//')"})
+  fi
+
+  candidates=(${(u)candidates})
+  (( ${#candidates[@]} )) && compadd -a candidates
+}
+
+_usb_wakeup_blocker() {
+  _arguments -s \
+    '-a[Block all USB devices]' \
+    '-m[Block only mice (default)]' \
+    '-c[Block mice and keyboards]' \
+    '-d[Dry run; show actions only]' \
+    '-v[Verbose tabular output]' \
+    '-h[Show help]' \
+    '--help[Show help]' \
+    '*-w+[Whitelist USB device by product name]:product:_usb_wakeup_blocker_whitelist'
+}
+
+_usb_wakeup_blocker "$@"
