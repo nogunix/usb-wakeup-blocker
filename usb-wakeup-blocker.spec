@@ -1,11 +1,15 @@
 Name:           usb-wakeup-blocker
-Version:        1.0.1
+Version:        1.0.3
 Release:        1%{?dist}
 Summary:        A script and systemd service to precisely control which devices can wake a Linux system from sleep.
 License:        MIT
 URL:            https://github.com/nogunix/usb-wakeup-blocker
 Source0:        https://github.com/nogunix/usb-wakeup-blocker/archive/refs/tags/v%{version}.tar.gz
 BuildArch:      noarch
+
+BuildRequires:  systemd-rpm-macros
+Requires:       usbutils
+Requires:       systemd
 
 %description
 A script and systemd service to precisely control which devices can wake a Linux system from sleep.
@@ -17,23 +21,41 @@ A script and systemd service to precisely control which devices can wake a Linux
 # Since it's a shell script, compilation is not necessary.
 
 %install
-mkdir -p %{buildroot}/usr/bin
-install -m 0755 bin/usb-wakeup-blocker.sh %{buildroot}/usr/bin/usb-wakeup-blocker.sh
+mkdir -p %{buildroot}%{_bindir}
+install -m 0755 bin/usb-wakeup-blocker.sh %{buildroot}%{_bindir}/usb-wakeup-blocker.sh
 
-mkdir -p %{buildroot}/etc
-install -m 0644 etc/usb-wakeup-blocker.conf %{buildroot}/etc/usb-wakeup-blocker.conf
+mkdir -p %{buildroot}%{_sysconfdir}
+install -m 0644 etc/usb-wakeup-blocker.conf %{buildroot}%{_sysconfdir}/usb-wakeup-blocker.conf
 
-mkdir -p %{buildroot}/usr/lib/systemd/system
-install -m 0644 systemd/usb-wakeup-blocker.service %{buildroot}/usr/lib/systemd/system/usb-wakeup-blocker.service
+mkdir -p %{buildroot}%{_unitdir}
+install -m 0644 systemd/usb-wakeup-blocker.service %{buildroot}%{_unitdir}/usb-wakeup-blocker.service
+
+mkdir -p %{buildroot}%{_datadir}/bash-completion/completions
+install -m 0644 completions/bash/usb-wakeup-blocker %{buildroot}%{_datadir}/bash-completion/completions/usb-wakeup-blocker
+
+mkdir -p %{buildroot}%{_datadir}/zsh/site-functions
+install -m 0644 completions/zsh/_usb-wakeup-blocker %{buildroot}%{_datadir}/zsh/site-functions/_usb-wakeup-blocker
+
+%post
+%systemd_post usb-wakeup-blocker.service
+
+%preun
+%systemd_preun usb-wakeup-blocker.service
+
+%postun
+%systemd_postun_with_restart usb-wakeup-blocker.service
 
 %files
 %doc README.md LICENSE
-/usr/bin/usb-wakeup-blocker.sh
-%config(noreplace) /etc/usb-wakeup-blocker.conf
-/usr/lib/systemd/system/usb-wakeup-blocker.service
+%{_bindir}/usb-wakeup-blocker.sh
+%config(noreplace) %{_sysconfdir}/usb-wakeup-blocker.conf
+%{_unitdir}/usb-wakeup-blocker.service
+%{_datadir}/bash-completion/completions/usb-wakeup-blocker
+%{_datadir}/zsh/site-functions/_usb-wakeup-blocker
 
 %changelog
-* Tue Aug 26 2025 Nogunix <nogunix@gmail.com> - 1.0.1-1
-- Update version to 1.0.1
-* Mon Aug 25 2025 Nogunix <nogunix@gmail.com> - 1.0.0-1
-- Initial package
+* Wed Apr 29 2026 Nogunix <nogunix@gmail.com> - 1.0.3-1
+- Support Fedora 44
+- Improve spec file for Fedora standards
+- Add systemd scriptlets and proper dependencies
+- Use standard macros for directories
