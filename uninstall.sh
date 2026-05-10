@@ -27,7 +27,7 @@ ${SUDO} rm -f "$SERVICE"
 ${SUDO} rm -f "/etc/systemd/system/usb-wakeup-blocker.service" || true
 
 if command -v systemctl >/dev/null 2>&1; then
-    ${SUDO} systemctl daemon-reload
+    ${SUDO} systemctl daemon-reload || true
 fi
 
 ${SUDO} rm -f "$UDEV_RULES"
