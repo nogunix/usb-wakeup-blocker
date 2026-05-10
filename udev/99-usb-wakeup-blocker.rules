@@ -1,0 +1,2 @@
+# Trigger usb-wakeup-blocker on USB device addition
+ACTION=="add", SUBSYSTEM=="usb", ATTR{power/wakeup}=="?*", RUN+="/usr/bin/usb-wakeup-blocker.sh -p /sys%p"

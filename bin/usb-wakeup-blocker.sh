@@ -55,14 +55,17 @@ Options:
   -a     Block all USB devices from waking the system.
   -m     Block only mice (default).
   -c     Block both mice and keyboards.
-  -w     Whitelist USB device by product name (multiple allowed). Use the "Product" field from -v output.
+  -w     Whitelist USB device by product name (multiple allowed). Use the "Product" field from -v/--list output.
   -d     Dry run (show actions but do not apply changes).
   -v     Verbose output.
+  -l     List current wakeup status of all USB devices.
+  -p     Path to a specific USB device in sysfs (e.g., /sys/bus/usb/devices/1-1).
   -h     Show this help.
 
 Examples:
   usb-wakeup-blocker.sh -c -w "My Keyboard"
   usb-wakeup-blocker.sh -m -w "USB Receiver"
+  usb-wakeup-blocker.sh -l
 EOF
 }
 
@@ -104,55 +107,74 @@ get_device_info() {
     return
   fi
 
-  # Prefer sysfs product for -w matching
+  # 1) Try sysfs first (fast and often sufficient)
   if [[ -r "$device_dir/product" ]]; then
     product_name="$(<"$device_dir/product")"
     [[ -n "$product_name" ]] || product_name="(unknown product)"
   fi
-
-  if [[ -f "$device_dir/busnum" && -f "$device_dir/devnum" ]]; then
-    busnum="$(<"$device_dir/busnum")"
-    devnum="$(<"$device_dir/devnum")"
-  fi
-
-  if is_function_available lsusb; then
-    if [[ -n "${busnum:-}" && -n "${devnum:-}" ]]; then
-      lsusb_v_output="$(lsusb -v -s "${busnum}:${devnum}" 2>/dev/null || true)"
-    else
-      if [[ -r "$device_dir/idVendor" && -r "$device_dir/idProduct" ]]; then
-        local vid pid
-        vid="$(<"$device_dir/idVendor")"
-        pid="$(<"$device_dir/idProduct")"
-        lsusb_v_output="$(lsusb -v -d "${vid}:${pid}" 2>/dev/null || true)"
-      fi
-    fi
-  else
-    lsusb_v_output=""
-  fi
-
-  # Detect Mouse/Keyboard and extract iProduct/vendor
-  if [[ -n "$lsusb_v_output" ]]; then
-    # --- Mouse / Keyboard detection ---
-    if grep -qiE 'Interface.*Keyboard|HID.*Keyboard|Protocol.*Keyboard|Protocol.*\(Keyboard\)' <<<"$lsusb_v_output"; then
-      is_keyboard="true"
-    fi
-    if grep -qiE 'Interface.*Mouse|HID.*Mouse|Protocol.*Mouse|Protocol.*\(Mouse\)' <<<"$lsusb_v_output"; then
-      is_mouse="true"
-    fi
-    # --- Extract only the product name from iProduct ---
-    local ip
-    ip="$(sed -nE 's/^[[:space:]]*iProduct[[:space:]]+[0-9]+[[:space:]]+(.+)$/\1/p' <<<"$lsusb_v_output" | head -n1)"
-    [[ -n "$ip" ]] && product_name="$ip"
-    # --- Extract only the vendor name from idVendor ---
-    local iv
-    iv="$(sed -nE 's/^[[:space:]]*idVendor[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+(.+)$/\1/p' <<<"$lsusb_v_output" | head -n1)"
-    [[ -n "$iv" ]] && vendor_name="$iv"
-  fi
-
-  # Fallback to sysfs manufacturer if vendor name is not available
-  if [[ -z "$vendor_name" && -r "$device_dir/manufacturer" ]]; then
+  if [[ -r "$device_dir/manufacturer" ]]; then
     vendor_name="$(<"$device_dir/manufacturer")"
   fi
+
+  # Check interfaces for HID class/protocol
+  for intf in "$device_dir"/*:*; do
+    [[ -d "$intf" ]] || continue
+    if [[ -r "$intf/bInterfaceClass" && -r "$intf/bInterfaceProtocol" ]]; then
+      local class protocol
+      class="$(<"$intf/bInterfaceClass")"
+      protocol="$(<"$intf/bInterfaceProtocol")"
+      # Class 03 = HID, Protocol 01 = Keyboard, 02 = Mouse
+      if [[ "$class" == "03" ]]; then
+        [[ "$protocol" == "01" ]] && is_keyboard="true"
+        [[ "$protocol" == "02" ]] && is_mouse="true"
+      fi
+    fi
+  done
+
+  # 2) Fallback to lsusb -v for more detailed detection if needed
+  # We only call lsusb if we haven't identified both or if product/vendor is still missing
+  if [[ "$is_mouse" == "false" || "$is_keyboard" == "false" || "$product_name" == "(unknown product)" ]]; then
+    if [[ -f "$device_dir/busnum" && -f "$device_dir/devnum" ]]; then
+      busnum="$(<"$device_dir/busnum")"
+      devnum="$(<"$device_dir/devnum")"
+    fi
+
+    if is_function_available lsusb; then
+      if [[ -n "${busnum:-}" && -n "${devnum:-}" ]]; then
+        lsusb_v_output="$(lsusb -v -s "${busnum}:${devnum}" 2>/dev/null || true)"
+      else
+        if [[ -r "$device_dir/idVendor" && -r "$device_dir/idProduct" ]]; then
+          local vid pid
+          vid="$(<"$device_dir/idVendor")"
+          pid="$(<"$device_dir/idProduct")"
+          lsusb_v_output="$(lsusb -v -d "${vid}:${pid}" 2>/dev/null || true)"
+        fi
+      fi
+    fi
+
+    if [[ -n "${lsusb_v_output:-}" ]]; then
+      # Detect Mouse/Keyboard if not already found via sysfs
+      if [[ "$is_keyboard" == "false" ]] && grep -qiE 'Interface.*Keyboard|HID.*Keyboard|Protocol.*Keyboard|Protocol.*\(Keyboard\)' <<<"$lsusb_v_output"; then
+        is_keyboard="true"
+      fi
+      if [[ "$is_mouse" == "false" ]] && grep -qiE 'Interface.*Mouse|HID.*Mouse|Protocol.*Mouse|Protocol.*\(Mouse\)' <<<"$lsusb_v_output"; then
+        is_mouse="true"
+      fi
+      # Extract only the product name from iProduct if missing
+      if [[ "$product_name" == "(unknown product)" ]]; then
+        local ip
+        ip="$(sed -nE 's/^[[:space:]]*iProduct[[:space:]]+[0-9]+[[:space:]]+(.+)$/\1/p' <<<"$lsusb_v_output" | head -n1)"
+        [[ -n "$ip" ]] && product_name="$ip"
+      fi
+      # Extract only the vendor name from idVendor if missing
+      if [[ -z "$vendor_name" ]]; then
+        local iv
+        iv="$(sed -nE 's/^[[:space:]]*idVendor[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]+(.+)$/\1/p' <<<"$lsusb_v_output" | head -n1)"
+        [[ -n "$iv" ]] && vendor_name="$iv"
+      fi
+    fi
+  fi
+
   [[ -n "$vendor_name" ]]  || vendor_name="(unknown vendor)"
   [[ -n "$product_name" ]] || product_name="(unknown product)"
 
@@ -189,7 +211,15 @@ process_usb_devices() {
     print_line
   fi
 
-  for dir in $USB_DEVICES_GLOB; do
+  # Expand glob if it contains wildcards, otherwise use as-is (for -p)
+  local dirs
+  if [[ "$USB_DEVICES_GLOB" == *"*"* ]]; then
+    dirs=( $USB_DEVICES_GLOB )
+  else
+    dirs=( "$USB_DEVICES_GLOB" )
+  fi
+
+  for dir in "${dirs[@]}"; do
     [[ -f "$dir/power/wakeup" ]] || continue
     local is_mouse is_keyboard product_name vendor_name
     IFS=$'\t' read -r is_mouse is_keyboard product_name vendor_name < <(get_device_info "$dir")
@@ -300,6 +330,10 @@ main() {
           WL_PATTERNS+=("$1") ;;
       -d) dry_run=true ;;
       -v) verbose=true ;;
+      -l|--list) verbose=true; dry_run=true ;;
+      -p|--path) shift || error "-p requires an argument"
+                 [[ -n "${1:-}" ]] || error "-p requires a non-empty argument"
+                 USB_DEVICES_GLOB="$1" ;;
       *)  error "Unknown option: $1" ;;
     esac
     shift
