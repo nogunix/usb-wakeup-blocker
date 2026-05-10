@@ -103,7 +103,7 @@ jobs:
             set -euo pipefail
 
             apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get install -y sudo bash-completion usbutils
+            DEBIAN_FRONTEND=noninteractive apt-get install -y sudo bash-completion usbutils udev
 
             chmod +x install.sh uninstall.sh
 

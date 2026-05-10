@@ -45,9 +45,14 @@ ${SUDO} install -Dm644 "$SOURCE_UDEV_RULES" "$UDEV_RULES_TARGET"
 ${SUDO} install -Dm644 "$SOURCE_BASH_COMPLETION" "$BASH_COMPLETION_TARGET"
 ${SUDO} install -Dm644 "$SOURCE_ZSH_COMPLETION" "$ZSH_COMPLETION_TARGET"
 
-${SUDO} systemctl daemon-reload
-${SUDO} udevadm control --reload-rules
-${SUDO} udevadm trigger --subsystem-match=usb
+if command -v systemctl >/dev/null 2>&1; then
+    ${SUDO} systemctl daemon-reload
+fi
+
+if command -v udevadm >/dev/null 2>&1; then
+    ${SUDO} udevadm control --reload-rules
+    ${SUDO} udevadm trigger --subsystem-match=usb
+fi
 
 echo "Installed successfully."
 echo "Configuration file template created at '/etc/usb-wakeup-blocker.conf'."

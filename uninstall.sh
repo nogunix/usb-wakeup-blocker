@@ -20,13 +20,20 @@ CONFIG_FILE="/etc/usb-wakeup-blocker.conf"
 BASH_COMPLETION="/usr/share/bash-completion/completions/usb-wakeup-blocker"
 ZSH_COMPLETION="/usr/share/zsh/site-functions/_usb-wakeup-blocker"
 
-${SUDO} systemctl disable --now usb-wakeup-blocker.service || true
+if command -v systemctl >/dev/null 2>&1; then
+    ${SUDO} systemctl disable --now usb-wakeup-blocker.service || true
+fi
 ${SUDO} rm -f "$SERVICE"
 ${SUDO} rm -f "/etc/systemd/system/usb-wakeup-blocker.service" || true
-${SUDO} systemctl daemon-reload
+
+if command -v systemctl >/dev/null 2>&1; then
+    ${SUDO} systemctl daemon-reload
+fi
 
 ${SUDO} rm -f "$UDEV_RULES"
-${SUDO} udevadm control --reload-rules || true
+if command -v udevadm >/dev/null 2>&1; then
+    ${SUDO} udevadm control --reload-rules || true
+fi
 
 ${SUDO} rm -f "$BIN"
 ${SUDO} rm -f "/usr/local/bin/usb-wakeup-blocker.sh" || true
