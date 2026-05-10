@@ -8,17 +8,25 @@ SCRIPT_UNDER_TEST="${BATS_TEST_DIRNAME}/../bin/usb-wakeup-blocker.sh"
 
 # Helper function to create a mock USB device
 create_mock_usb_device() {
-    local name="$1" busnum="$2" devnum="$3" state="$4"
+    local name="$1" busnum="$2" devnum="$3" state="$4" class="$5" protocol="$6" product="$7" vendor="$8"
     mkdir -p "$MOCK_SYS_PATH/$name/power"
     echo "$busnum" > "$MOCK_SYS_PATH/$name/busnum"
     echo "$devnum" > "$MOCK_SYS_PATH/$name/devnum"
     echo "$state" > "$MOCK_SYS_PATH/$name/power/wakeup"
+    [[ -n "$product" ]] && echo "$product" > "$MOCK_SYS_PATH/$name/product"
+    [[ -n "$vendor" ]] && echo "$vendor" > "$MOCK_SYS_PATH/$name/manufacturer"
+    if [[ -n "$class" ]]; then
+        mkdir -p "$MOCK_SYS_PATH/$name/$name:1.0"
+        echo "$class" > "$MOCK_SYS_PATH/$name/$name:1.0/bInterfaceClass"
+        echo "$protocol" > "$MOCK_SYS_PATH/$name/$name:1.0/bInterfaceProtocol"
+    fi
 }
 
 # --- Setup ---
 setup() {
     # 1) Define mock paths and create directories
     MOCK_ROOT="$BATS_TMPDIR/mockfs"
+    rm -rf "$MOCK_ROOT"
     MOCK_SYS_PATH="$MOCK_ROOT/sys/bus/usb/devices"
     MOCK_BIN_PATH="$MOCK_ROOT/bin"
     mkdir -p "$MOCK_SYS_PATH" "$MOCK_BIN_PATH"
@@ -48,10 +56,16 @@ EOF
     export PATH="$MOCK_BIN_PATH:$PATH"
 
     # 4) Create mock USB devices
-    create_mock_usb_device "usb1" "1" "1" "enabled"   # Mouse
-    create_mock_usb_device "usb2" "1" "2" "enabled"   # Keyboard
-    create_mock_usb_device "usb3" "1" "3" "enabled"   # Combo
-    create_mock_usb_device "usb4" "1" "4" "enabled"   # Other
+    # Usage: name busnum devnum state [class protocol product vendor]
+    create_mock_usb_device "usb1" "1" "1" "enabled" "03" "02" "Mouse Device" "Vendor 1"
+    create_mock_usb_device "usb2" "1" "2" "enabled" "03" "01" "Keyboard Device" "Vendor 2"
+    create_mock_usb_device "usb3" "1" "3" "enabled" "03" "02" "Combo Device" "Vendor 3"
+    # Add second interface for Combo Keyboard
+    mkdir -p "$MOCK_SYS_PATH/usb3/usb3:1.1"
+    echo "03" > "$MOCK_SYS_PATH/usb3/usb3:1.1/bInterfaceClass"
+    echo "01" > "$MOCK_SYS_PATH/usb3/usb3:1.1/bInterfaceProtocol"
+
+    create_mock_usb_device "usb4" "1" "4" "enabled" "00" "00" "Other Device" "Vendor 4"
 
     # Script to be executed in tests
     TEST_SCRIPT_PATH="$SCRIPT_UNDER_TEST"
@@ -302,5 +316,31 @@ EOF
 
     # restore for other tests (though setup runs every time)
     chmod +w "$MOCK_SYS_PATH/usb1/power/wakeup"
+}
+
+@test "Path option (-p): should process only specific device" {
+    # reset all to enabled
+    echo enabled > "$MOCK_SYS_PATH/usb1/power/wakeup"
+    echo enabled > "$MOCK_SYS_PATH/usb2/power/wakeup"
+
+    # Only process usb1 (mouse)
+    run "$TEST_SCRIPT_PATH" -m -p "$MOCK_SYS_PATH/usb1"
+    assert_success
+
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")" "disabled"
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb2/power/wakeup")" "enabled" # Should not be touched
+}
+
+@test "List option (-l): should show status without changes" {
+    # capture initial state
+    initial_usb1="$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")"
+
+    run "$TEST_SCRIPT_PATH" -l
+    assert_success
+    assert_output --partial "Device"
+    assert_output --partial "usb1"
+    
+    # unchanged
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")" "$initial_usb1"
 }
 

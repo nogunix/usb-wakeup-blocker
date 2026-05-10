@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.1.0
+- Added udev rule support for automatic handling of hot-plugged USB devices.
+- Refactored device detection to prioritize sysfs, significantly improving performance and reliability.
+- Added `-p`/`--path` option to process a specific USB device, optimized for udev triggers.
+- Added `-l`/`--list` option for easy status checking.
+- Improved test suite with better isolation and increased coverage for edge cases.
+
 ## v1.0.3
 - Support Fedora 44.
 - Modernized RPM spec file with proper dependencies and systemd macros.
