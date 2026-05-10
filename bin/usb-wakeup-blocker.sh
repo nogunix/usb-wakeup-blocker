@@ -214,6 +214,7 @@ process_usb_devices() {
   # Expand glob if it contains wildcards, otherwise use as-is (for -p)
   local dirs
   if [[ "$USB_DEVICES_GLOB" == *"*"* ]]; then
+    # shellcheck disable=SC2206
     dirs=( $USB_DEVICES_GLOB )
   else
     dirs=( "$USB_DEVICES_GLOB" )
