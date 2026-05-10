@@ -46,12 +46,12 @@ ${SUDO} install -Dm644 "$SOURCE_BASH_COMPLETION" "$BASH_COMPLETION_TARGET"
 ${SUDO} install -Dm644 "$SOURCE_ZSH_COMPLETION" "$ZSH_COMPLETION_TARGET"
 
 if command -v systemctl >/dev/null 2>&1; then
-    ${SUDO} systemctl daemon-reload
+    ${SUDO} systemctl daemon-reload || true
 fi
 
 if command -v udevadm >/dev/null 2>&1; then
-    ${SUDO} udevadm control --reload-rules
-    ${SUDO} udevadm trigger --subsystem-match=usb
+    ${SUDO} udevadm control --reload-rules || true
+    ${SUDO} udevadm trigger --subsystem-match=usb || true
 fi
 
 echo "Installed successfully."

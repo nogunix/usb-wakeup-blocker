@@ -99,6 +99,9 @@ jobs:
           }
           trap cleanup EXIT
 
+          # Wait for systemd to be ready
+          docker exec "$container_id" bash -c "until systemctl is-system-running --quiet || [ \"\$(systemctl is-system-running)\" = \"degraded\" ]; do sleep 1; done"
+
           docker exec --workdir /src "$container_id" bash -lc '
             set -euo pipefail
 
