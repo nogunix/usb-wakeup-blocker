@@ -1,5 +1,5 @@
 Name:           usb-wakeup-blocker
-Version:        1.1.0
+Version:        1.1.1
 Release:        1%{?dist}
 Summary:        A script and systemd service to precisely control which devices can wake a Linux system from sleep.
 License:        MIT
@@ -60,6 +60,9 @@ udevadm control --reload-rules || :
 %{_datadir}/zsh/site-functions/_usb-wakeup-blocker
 
 %changelog
+* Sat Aug 29 2026 Nogunix <nogunix@gmail.com> - 1.1.1-1
+- Fix helper binary path resolution for Homebrew installs on Apple Silicon
+
 * Sun May 10 2026 Nogunix <nogunix@gmail.com> - 1.1.0-1
 - Add udev rule for hotplug support
 - Use sysfs for faster device detection

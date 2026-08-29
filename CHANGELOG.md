@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.1.1
+- Fixed helper binary path resolution for Homebrew installs on Apple Silicon (`/opt/homebrew/bin/`).
+
 ## v1.1.0
 - Added udev rule support for automatic handling of hot-plugged USB devices.
 - Refactored device detection to prioritize sysfs, significantly improving performance and reliability.
