@@ -19,14 +19,47 @@ By default:
 
 ## Prerequisites
 
-This project targets Linux systems that use **systemd** and requires the `usbutils` package so that `lsusb` is available. If `usbutils` isn't installed, add it, for example on Debian/Ubuntu:
+| Requirement | Required? | Notes |
+|-------------|-----------|-------|
+| **systemd** | Yes | This project targets Linux systems that use systemd. |
+| **bash** 4.2 or later | Yes | The script re-execs itself with bash if started by another shell. |
+| **`usbutils`** (`lsusb`) | Optional (recommended) | Device detection reads sysfs first. `lsusb -v` is used only as a fallback to classify mice/keyboards and to fill in missing product/vendor names. |
+
+Installing `usbutils`:
+
+| Distribution family | Package manager | Command |
+|---------------------|-----------------|---------|
+| Fedora / RHEL / CentOS Stream | `dnf` | `sudo dnf install usbutils` |
+| Debian / Ubuntu | `apt` | `sudo apt install usbutils` |
+
+**CI tested on:** Fedora 43 · Fedora 44 · Ubuntu 24.04 · Ubuntu 26.04
+(every push runs the unit tests and an install/uninstall check against real
+systemd on each of them). Other systemd-based distributions should work, but
+are not covered by CI.
+
+
+## Installation
+
+Pick the method that matches your distribution:
+
+| Distribution | Recommended method |
+|--------------|--------------------|
+| Fedora | [A. COPR package (`dnf`)](#a-fedora-copr-package-dnf) — installs and updates through `dnf` |
+| Debian / Ubuntu (`apt`) and any other systemd distribution | [B. From source (`install.sh`)](#b-from-source-any-systemd-distribution) — no `apt` package is provided |
+
+### A. Fedora: COPR package (`dnf`)
 
 ```bash
-sudo apt install usbutils
+sudo dnf copr enable nogunix/usb-wakeup-blocker
+sudo dnf install usb-wakeup-blocker
+sudo systemctl enable --now usb-wakeup-blocker.service
 ```
 
+Updates then come with the rest of the system via `sudo dnf upgrade`.
 
-## Quick Start (default: block only mice)
+### B. From source (any systemd distribution)
+
+This is the path for Debian/Ubuntu (`apt`) users, since no `.deb` package is published. It is also fine on Fedora if you prefer to track `main` instead of the COPR build.
 
 ```bash
 git clone https://github.com/nogunix/usb-wakeup-blocker.git
@@ -35,7 +68,11 @@ sudo ./install.sh
 sudo systemctl enable --now usb-wakeup-blocker.service
 ```
 
-Check that the service is running:
+`install.sh` copies the script, the systemd unit, the udev rule, the default configuration file, and the bash/zsh completions into `/usr`. To update, `git pull` and re-run `sudo ./install.sh`; your existing `/etc/usb-wakeup-blocker.conf` is left untouched.
+
+### Verifying the installation
+
+Both methods install the same files, so the check is the same. The default behaviour blocks only mice.
 
 ```bash
 sudo systemctl status usb-wakeup-blocker.service
@@ -52,16 +89,6 @@ Example output:
 You're done ✅ — your mouse can no longer wake the system, but your keyboard still works as before.
 
 
-## Installation via COPR
-
-For Fedora, you can install `usb-wakeup-blocker` from the COPR repository:
-
-```bash
-sudo dnf copr enable nogunix/usb-wakeup-blocker
-sudo dnf install usb-wakeup-blocker
-```
-
-
 ## Options Overview
 
 | Flag | Description |
@@ -69,9 +96,22 @@ sudo dnf install usb-wakeup-blocker
 | `-m` | Block only mice from waking the system *(default)* |
 | `-c` | Block both mice and keyboards |
 | `-a` | Block all USB devices |
-| `-w "NAME"` | Whitelist a device by product name (can be repeated). Use the **Product** value shown in `-v` output |
+| `-w "NAME"` | Whitelist a device by product name (can be repeated). Use the **Product** value shown in `-v`/`-l` output |
 | `-v` | Verbose output for diagnostics |
 | `-d` | Dry-run mode (no changes made) |
+| `-l`, `--list` | List the current wakeup status of all USB devices. Shorthand for `-v -d`, so it never changes anything |
+| `-p`, `--path PATH` | Act on a single device instead of every USB device, given as its sysfs path (e.g. `/sys/bus/usb/devices/1-1`). This is what the udev rule uses to handle hot-plugged devices |
+| `-h`, `--help` | Show usage |
+
+Examples:
+
+```bash
+# Show what would happen, without touching anything
+sudo usb-wakeup-blocker.sh -l
+
+# Apply the current policy to one device that was just plugged in
+sudo usb-wakeup-blocker.sh -p /sys/bus/usb/devices/1-2.3
+```
 
 
 ## Configuration
@@ -174,6 +214,17 @@ The `usb-wakeup-blocker.sh` script modifies the `power/wakeup` attribute of USB 
 
 ## Uninstallation
 
+Use the counterpart of the installation method you chose.
+
+### A. Installed from COPR (`dnf`)
+
+```bash
+sudo dnf remove usb-wakeup-blocker
+sudo dnf copr disable nogunix/usb-wakeup-blocker
+```
+
+### B. Installed from source (`install.sh`)
+
 ```bash
 sudo ./uninstall.sh
 ```
@@ -185,6 +236,9 @@ Removes:
 - systemd service file
 - Configuration file
 
+Neither method reverts the `power/wakeup` state of devices that were already
+changed — see [Recovery on Failure](#recovery-on-failure).
+
 
 ## Troubleshooting
 
@@ -192,7 +246,7 @@ Removes:
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| `lsusb: command not found` | `usbutils` not installed | `sudo dnf install usbutils` (Fedora) / `sudo apt install usbutils` (Debian/Ubuntu) |
+| `lsusb: command not found` | `usbutils` not installed (optional, but improves device detection) | Fedora: `sudo dnf install usbutils` <br> Debian/Ubuntu: `sudo apt install usbutils` |
 | No devices listed in verbose mode | Script run without `sudo` | Run with `sudo` |
 | Settings revert after reboot | Service not enabled | `sudo systemctl enable usb-wakeup-blocker.service` |
 
