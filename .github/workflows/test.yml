@@ -218,7 +218,7 @@ jobs:
           version=$(rpmspec -q --qf '%{version}\n' usb-wakeup-blocker.spec | head -n1)
           mkdir -p /root/rpmbuild/SOURCES /root/rpmbuild/SPECS
           git archive --format=tar --prefix="usb-wakeup-blocker-${version}/" HEAD \
-            | gzip > "/root/rpmbuild/SOURCES/v${version}.tar.gz"
+            | gzip > "/root/rpmbuild/SOURCES/usb-wakeup-blocker-${version}.tar.gz"
           cp usb-wakeup-blocker.spec /root/rpmbuild/SPECS/
           rpmbuild -bb /root/rpmbuild/SPECS/usb-wakeup-blocker.spec
 
@@ -227,18 +227,33 @@ jobs:
           set -euo pipefail
           rpm=$(find /root/rpmbuild/RPMS -name '*.rpm' | head -n1)
           echo "built: $rpm"
-          dnf -y install --allowerasing "$rpm"
+          # The container images set tsflags=nodocs, which would drop the man
+          # page and the license we want to assert on.
+          dnf -y install --allowerasing --setopt=tsflags= "$rpm"
 
-          test -x /usr/bin/usb-wakeup-blocker.sh
+          test -x /usr/bin/usb-wakeup-blocker
+          # Compatibility symlink for the pre-1.1.2 command name.
+          test -L /usr/bin/usb-wakeup-blocker.sh
           test -f /usr/lib/systemd/system/usb-wakeup-blocker.service
           test -f /usr/lib/udev/rules.d/99-usb-wakeup-blocker.rules
           test -f /etc/usb-wakeup-blocker.conf
+          test -f /usr/share/man/man1/usb-wakeup-blocker.1.gz
+          test -f /usr/share/man/man1/usb-wakeup-blocker.sh.1.gz
+          test -f /usr/share/licenses/usb-wakeup-blocker/LICENSE
           test -f /usr/share/bash-completion/completions/usb-wakeup-blocker
           test -f /usr/share/zsh/site-functions/_usb-wakeup-blocker
 
+          SKIP_ROOT_CHECK=1 /usr/bin/usb-wakeup-blocker -h >/dev/null
           SKIP_ROOT_CHECK=1 /usr/bin/usb-wakeup-blocker.sh -h >/dev/null
 
+          # The unit and the udev rule must call the real name, not the symlink.
+          grep -q '^ExecStart=/usr/bin/usb-wakeup-blocker ' \
+            /usr/lib/systemd/system/usb-wakeup-blocker.service
+          grep -q '/usr/bin/usb-wakeup-blocker -p ' \
+            /usr/lib/udev/rules.d/99-usb-wakeup-blocker.rules
+
           dnf -y remove usb-wakeup-blocker
+          test ! -e /usr/bin/usb-wakeup-blocker
           test ! -e /usr/bin/usb-wakeup-blocker.sh
 
   # End-to-end install/uninstall against a real systemd instance, on every

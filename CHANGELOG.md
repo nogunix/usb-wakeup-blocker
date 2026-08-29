@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.2
+- Added a man page (`usb-wakeup-blocker(1)`).
+- The RPM now installs the command as `usb-wakeup-blocker`; `usb-wakeup-blocker.sh` remains as a compatibility symlink.
+- Reworked the spec file against the Fedora Packaging Guidelines (`%license`, `%check`, versioned source tarball).
+
 ## v1.1.1
 - Fixed helper binary path resolution for Homebrew installs on Apple Silicon (`/opt/homebrew/bin/`).
 

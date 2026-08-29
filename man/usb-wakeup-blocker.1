@@ -1,0 +1,110 @@
+.TH USB\-WAKEUP\-BLOCKER 1 "2026-08-30" "usb-wakeup-blocker 1.1.2" "User Commands"
+.SH NAME
+usb\-wakeup\-blocker \- control which USB devices may wake the system from sleep
+.SH SYNOPSIS
+.B usb\-wakeup\-blocker
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+.B usb\-wakeup\-blocker
+disables USB remote wakeup for the devices you choose, so that a nudged mouse
+or a stray USB signal no longer brings the machine out of sleep. By default it
+blocks only mice; keyboards and every other device keep their ability to wake
+the system.
+.PP
+On Linux the tool reads and writes the
+.I power/wakeup
+attribute of each device under
+.IR /sys/bus/usb/devices ,
+falling back to
+.BR lsusb (8)
+only to classify devices and to fill in missing product names. On macOS it
+drives an IOKit helper instead.
+.PP
+Applying changes requires root privileges. Read-only modes such as
+.B \-l
+still need root to read every device attribute.
+.SH OPTIONS
+.TP
+.B \-a
+Block all USB devices from waking the system.
+.TP
+.B \-m
+Block only mice. This is the default.
+.TP
+.B \-c
+Block both mice and keyboards.
+.TP
+.BI \-w " PRODUCT"
+Whitelist a USB device by product name, so it keeps its ability to wake the
+system. May be given more than once. Use the
+.B Product
+field shown by
+.B \-v
+or
+.B \-l
+to find the right name; a partial match is enough.
+.TP
+.B \-d
+Dry run. Show what would change without touching any device.
+.TP
+.B \-v
+Verbose output, including a table of every device and its state.
+.TP
+.B \-l
+List the current wakeup status of all USB devices and exit without changing
+anything.
+.TP
+.BI \-p " PATH"
+Act on one device only, given as a sysfs path on Linux or a location ID on
+macOS. This is the form the udev rule uses for hot-plugged devices.
+.TP
+.B \-\-daemon
+macOS only. Run as a persistent daemon that disables wakeup before each sleep.
+.TP
+.B \-h
+Show a usage summary and exit.
+.SH FILES
+.TP
+.I /etc/usb-wakeup-blocker.conf
+Options passed to the systemd service, as
+.BR ARGS .
+Preserved across package upgrades.
+.TP
+.I /usr/lib/systemd/system/usb-wakeup-blocker.service
+One-shot unit that applies the policy at boot.
+.TP
+.I /usr/lib/udev/rules.d/99-usb-wakeup-blocker.rules
+Applies the policy to devices plugged in while the system is running.
+.SH EXAMPLES
+Block mice and keyboards, but let one keyboard through:
+.PP
+.RS 4
+.EX
+usb\-wakeup\-blocker \-c \-w "My Keyboard"
+.EE
+.RE
+.PP
+Block everything except a wireless receiver:
+.PP
+.RS 4
+.EX
+usb\-wakeup\-blocker \-a \-w "USB Receiver"
+.EE
+.RE
+.PP
+Show the current state without changing anything:
+.PP
+.RS 4
+.EX
+usb\-wakeup\-blocker \-l
+.EE
+.RE
+.SH EXIT STATUS
+Returns 0 on success and a non-zero value if the arguments are invalid or the
+device state could not be read or written.
+.SH SEE ALSO
+.BR lsusb (8),
+.BR systemctl (1),
+.BR udev (7)
+.SH BUGS
+Report bugs at <https://github.com/nogunix/usb-wakeup-blocker/issues>.

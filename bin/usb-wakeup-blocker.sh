@@ -76,8 +76,12 @@ internal_error()  { echo "INTERNAL ERROR: $*" >&2; exit 1; }
 is_function_available() { type "$1" >/dev/null 2>&1; }
 
 usage() {
+  # The RPM installs the command as usb-wakeup-blocker and keeps
+  # usb-wakeup-blocker.sh as a symlink, so report the name we were invoked by.
+  local self
+  self="$(basename "$0")"
   cat <<EOF
-Usage: usb-wakeup-blocker.sh [OPTIONS]
+Usage: $self [OPTIONS]
 
 Options:
   -a          Block all USB devices from waking the system.
@@ -92,10 +96,10 @@ Options:
   -h          Show this help.
 
 Examples:
-  usb-wakeup-blocker.sh -c -w "My Keyboard"
-  usb-wakeup-blocker.sh -m -w "USB Receiver"
-  usb-wakeup-blocker.sh -l
-  usb-wakeup-blocker.sh --daemon          # macOS: run as sleep-aware daemon
+  $self -c -w "My Keyboard"
+  $self -m -w "USB Receiver"
+  $self -l
+  $self --daemon          # macOS: run as sleep-aware daemon
 EOF
 }
 
