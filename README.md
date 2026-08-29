@@ -39,7 +39,8 @@ machine.
 
 The [COPR repository](https://copr.fedorainfracloud.org/coprs/nogunix/usb-wakeup-blocker/)
 carries builds for **Fedora 43/44** and for **EL 9 / EL 10** — the latter covers
-RHEL, CentOS Stream, Rocky Linux and AlmaLinux, on `x86_64` and `aarch64`.
+RHEL, CentOS Stream, Rocky Linux and AlmaLinux. Every one of them is built for
+both `x86_64` and `aarch64`.
 
 ```bash
 sudo dnf copr enable nogunix/usb-wakeup-blocker
