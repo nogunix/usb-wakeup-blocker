@@ -22,7 +22,103 @@ By default:
 - Keyboards and other devices remain unaffected.
 
 
-## Prerequisites
+## Quick start
+
+Find your platform, run the three commands, done. The default policy blocks
+**only mice** — keyboards and everything else keep their ability to wake the
+machine.
+
+| Your system | Install with | Jump to |
+|-------------|--------------|---------|
+| **Fedora** / RHEL / CentOS Stream | `dnf` (COPR package) | [Fedora](#fedora-dnf) |
+| **macOS** | `brew` (Homebrew tap) | [macOS](#macos-homebrew) |
+| Debian / Ubuntu / Arch / any other systemd distro | `install.sh` from source | [Other Linux](#other-linux-from-source) |
+| macOS, without Homebrew | `install.sh` from source | [macOS from source](#macos-from-source) |
+
+### Fedora (`dnf`)
+
+```bash
+sudo dnf copr enable nogunix/usb-wakeup-blocker
+sudo dnf install usb-wakeup-blocker
+sudo systemctl enable --now usb-wakeup-blocker.service
+```
+
+Check that it worked (this only reads, it never changes anything):
+
+```bash
+sudo usb-wakeup-blocker.sh -l
+```
+
+Updates arrive with the rest of the system via `sudo dnf upgrade`.
+Everything the package needs (`systemd`, `usbutils`) is pulled in as a dependency.
+
+### macOS (Homebrew)
+
+```bash
+brew tap nogunix/tap
+brew install usb-wakeup-blocker
+sudo brew services start usb-wakeup-blocker
+```
+
+Check that it worked:
+
+```bash
+sudo usb-wakeup-blocker.sh -l
+```
+
+Updates come with `brew upgrade usb-wakeup-blocker`.
+Homebrew installs the required bash 4+ for you; the service then runs as a
+persistent **launchd** daemon that disables USB remote wakeup before each sleep.
+
+### Other Linux (from source)
+
+This is the path for Debian/Ubuntu and every other systemd distribution — no
+`.deb` package is published. It also works on Fedora if you would rather track
+`main` than the COPR build.
+
+Requirements: **systemd**, **bash 4.2+**, and optionally `usbutils` for better
+device names (`sudo apt install usbutils`).
+
+```bash
+git clone https://github.com/nogunix/usb-wakeup-blocker.git
+cd usb-wakeup-blocker
+sudo ./install.sh
+sudo systemctl enable --now usb-wakeup-blocker.service
+```
+
+Check that it worked:
+
+```bash
+sudo usb-wakeup-blocker.sh -l
+```
+
+`install.sh` copies the script, the systemd unit, the udev rule, the default
+configuration file, and the bash/zsh completions into `/usr`. To update,
+`git pull` and re-run `sudo ./install.sh`; your existing
+`/etc/usb-wakeup-blocker.conf` is left untouched.
+
+### macOS (from source)
+
+Requirements: **bash 4+** (macOS ships 3.2) and the **Xcode Command Line
+Tools**, used to compile the IOKit helper.
+
+```bash
+brew install bash
+xcode-select --install                  # if not already installed
+
+git clone https://github.com/nogunix/usb-wakeup-blocker.git
+cd usb-wakeup-blocker
+sudo ./install.sh
+sudo launchctl load -w /Library/LaunchDaemons/com.usb-wakeup-blocker.plist
+```
+
+The install script compiles the IOKit helper and places everything under
+`/usr/local`.
+
+
+## Requirements in detail
+
+Skip this if you installed via `dnf` or `brew` — those handle it for you.
 
 ### Linux
 
@@ -32,12 +128,8 @@ By default:
 | **bash** 4.2 or later | Yes | The script re-execs itself with bash if started by another shell. |
 | **`usbutils`** (`lsusb`) | Optional (recommended) | Device detection reads sysfs first. `lsusb -v` is used only as a fallback to classify mice/keyboards and to fill in missing product/vendor names. |
 
-Installing `usbutils`:
-
-| Distribution family | Package manager | Command |
-|---------------------|-----------------|---------|
-| Fedora / RHEL / CentOS Stream | `dnf` | `sudo dnf install usbutils` |
-| Debian / Ubuntu | `apt` | `sudo apt install usbutils` |
+Installing `usbutils`: `sudo dnf install usbutils` (Fedora / RHEL / CentOS
+Stream) or `sudo apt install usbutils` (Debian / Ubuntu).
 
 **CI tested on:** Fedora 43 · Fedora 44 · Ubuntu 24.04 · Ubuntu 26.04
 (every push runs the unit tests and an install/uninstall check against real
@@ -46,76 +138,9 @@ are not covered by CI.
 
 ### macOS
 
-Requires **bash 4+** (macOS ships with bash 3.2) and **Xcode Command Line Tools** (for compiling the IOKit helper). If you install via Homebrew, bash is handled automatically.
-
-```bash
-brew install bash                       # Homebrew install handles this
-xcode-select --install                  # if not already installed
-```
-
-Device detection uses `ioreg` (built-in) instead of `lsusb`. The service runs as a persistent daemon via **launchd**, receiving sleep notifications and disabling USB remote wakeup before each sleep.
-
-
-## Installation
-
-Pick the method that matches your platform:
-
-| Platform | Recommended method |
-|----------|--------------------|
-| Fedora | [A. COPR package (`dnf`)](#a-fedora-copr-package-dnf) — installs and updates through `dnf` |
-| Debian / Ubuntu (`apt`) and any other systemd distribution | [B. From source (`install.sh`)](#b-from-source-any-systemd-distribution) — no `apt` package is provided |
-| macOS | [C. Homebrew](#c-macos-homebrew) — recommended |
-| macOS (manual) | [D. From source (`install.sh`)](#d-macos-from-source) |
-
-### A. Fedora: COPR package (`dnf`)
-
-```bash
-sudo dnf copr enable nogunix/usb-wakeup-blocker
-sudo dnf install usb-wakeup-blocker
-sudo systemctl enable --now usb-wakeup-blocker.service
-```
-
-Updates then come with the rest of the system via `sudo dnf upgrade`.
-
-### B. From source (any systemd distribution)
-
-This is the path for Debian/Ubuntu (`apt`) users, since no `.deb` package is published. It is also fine on Fedora if you prefer to track `main` instead of the COPR build.
-
-```bash
-git clone https://github.com/nogunix/usb-wakeup-blocker.git
-cd usb-wakeup-blocker
-sudo ./install.sh
-sudo systemctl enable --now usb-wakeup-blocker.service
-```
-
-`install.sh` copies the script, the systemd unit, the udev rule, the default configuration file, and the bash/zsh completions into `/usr`. To update, `git pull` and re-run `sudo ./install.sh`; your existing `/etc/usb-wakeup-blocker.conf` is left untouched.
-
-Verify the installation (the default behaviour blocks only mice):
-
-```bash
-sudo systemctl status usb-wakeup-blocker.service
-```
-
-### C. macOS: Homebrew
-
-```bash
-brew tap nogunix/tap
-brew install usb-wakeup-blocker
-sudo brew services start usb-wakeup-blocker
-```
-
-Updates then come with `brew upgrade usb-wakeup-blocker`.
-
-### D. macOS (from source)
-
-```bash
-git clone https://github.com/nogunix/usb-wakeup-blocker.git
-cd usb-wakeup-blocker
-sudo ./install.sh
-sudo launchctl load -w /Library/LaunchDaemons/com.usb-wakeup-blocker.plist
-```
-
-The install script compiles the IOKit helper and places everything under `/usr/local`. The daemon runs persistently via launchd, intercepting sleep events to disable USB remote wakeup on target devices.
+Requires **bash 4+** (macOS ships with bash 3.2) and **Xcode Command Line
+Tools** (for compiling the IOKit helper). Homebrew installs handle bash
+automatically. Device detection uses `ioreg` (built-in) instead of `lsusb`.
 
 
 ## Options Overview
@@ -248,14 +273,22 @@ The script modifies USB device wakeup settings. If you need to revert changes:
 
 Use the counterpart of the installation method you chose.
 
-### A. Installed from COPR (`dnf`)
+### Installed with `dnf` (Fedora / COPR)
 
 ```bash
 sudo dnf remove usb-wakeup-blocker
 sudo dnf copr disable nogunix/usb-wakeup-blocker
 ```
 
-### B. Installed from source (`install.sh`)
+### Installed with `brew` (macOS)
+
+```bash
+sudo brew services stop usb-wakeup-blocker
+brew uninstall usb-wakeup-blocker
+brew untap nogunix/tap    # optional
+```
+
+### Installed from source (`install.sh`)
 
 ```bash
 sudo ./uninstall.sh
@@ -267,16 +300,8 @@ On **Linux**, removes: script, systemd service, udev rules, and configuration fi
 
 On **macOS**, removes: script, IOKit helper, launchd daemon, and configuration file.
 
-### C. Installed from Homebrew
-
-```bash
-sudo brew services stop usb-wakeup-blocker
-brew uninstall usb-wakeup-blocker
-brew untap nogunix/tap    # optional
-```
-
-Neither method reverts the `power/wakeup` state of devices that were already
-changed — see [Recovery on Failure](#recovery-on-failure).
+No uninstall method reverts the `power/wakeup` state of devices that were
+already changed — see [Recovery on Failure](#recovery-on-failure).
 
 
 ## Troubleshooting
