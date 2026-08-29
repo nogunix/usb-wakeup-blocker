@@ -45,5 +45,11 @@ else
   fi
 fi
 
-# 5) Run the tests.
-exec "${BATS_BIN}" "${TEST_DIR}/test.bats"
+# 5) Collect test files.
+TEST_FILES=("${TEST_DIR}/test.bats")
+if [[ -f "${TEST_DIR}/test-macos.bats" ]]; then
+  TEST_FILES+=("${TEST_DIR}/test-macos.bats")
+fi
+
+# 6) Run the tests.
+exec "${BATS_BIN}" "${TEST_FILES[@]}"

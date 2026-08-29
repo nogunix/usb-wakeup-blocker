@@ -5,7 +5,7 @@
 
 # usb wakeup blocker
 
-Prevent your Linux PC from waking up unexpectedly — with precise control over which USB devices are allowed to do so.
+Prevent your Linux or macOS machine from waking up unexpectedly — with precise control over which USB devices are allowed to do so.
 
 
 ## Why you might need this
@@ -18,6 +18,8 @@ By default:
 
 
 ## Prerequisites
+
+### Linux
 
 | Requirement | Required? | Notes |
 |-------------|-----------|-------|
@@ -37,15 +39,27 @@ Installing `usbutils`:
 systemd on each of them). Other systemd-based distributions should work, but
 are not covered by CI.
 
+### macOS
+
+Requires **bash 4+** (macOS ships with bash 3.2) and **Xcode Command Line Tools** (for compiling the IOKit helper during installation):
+
+```bash
+brew install bash
+xcode-select --install   # if not already installed
+```
+
+Device detection uses `ioreg` (built-in) instead of `lsusb`. The service runs as a persistent daemon via **launchd**, receiving sleep notifications and disabling USB remote wakeup before each sleep.
+
 
 ## Installation
 
-Pick the method that matches your distribution:
+Pick the method that matches your platform:
 
-| Distribution | Recommended method |
-|--------------|--------------------|
+| Platform | Recommended method |
+|----------|--------------------|
 | Fedora | [A. COPR package (`dnf`)](#a-fedora-copr-package-dnf) — installs and updates through `dnf` |
 | Debian / Ubuntu (`apt`) and any other systemd distribution | [B. From source (`install.sh`)](#b-from-source-any-systemd-distribution) — no `apt` package is provided |
+| macOS | [C. From source (`install.sh`)](#c-macos-from-source) |
 
 ### A. Fedora: COPR package (`dnf`)
 
@@ -70,23 +84,22 @@ sudo systemctl enable --now usb-wakeup-blocker.service
 
 `install.sh` copies the script, the systemd unit, the udev rule, the default configuration file, and the bash/zsh completions into `/usr`. To update, `git pull` and re-run `sudo ./install.sh`; your existing `/etc/usb-wakeup-blocker.conf` is left untouched.
 
-### Verifying the installation
-
-Both methods install the same files, so the check is the same. The default behaviour blocks only mice.
+Verify the installation (the default behaviour blocks only mice):
 
 ```bash
 sudo systemctl status usb-wakeup-blocker.service
 ```
 
-Example output:
+### C. macOS (from source)
 
-```
-● usb-wakeup-blocker.service - USB wakeup blocker
-     Loaded: loaded (/usr/lib/systemd/system/usb-wakeup-blocker.service; enabled; preset: enabled)
-     Active: active (exited) since Thu 2024-01-01 00:00:00 UTC; 1s ago
+```bash
+git clone https://github.com/nogunix/usb-wakeup-blocker.git
+cd usb-wakeup-blocker
+sudo ./install.sh
+sudo launchctl load -w /Library/LaunchDaemons/com.usb-wakeup-blocker.plist
 ```
 
-You're done ✅ — your mouse can no longer wake the system, but your keyboard still works as before.
+The install script compiles the IOKit helper and places everything under `/usr/local`. The daemon runs persistently via launchd, intercepting sleep events to disable USB remote wakeup on target devices.
 
 
 ## Options Overview
@@ -118,9 +131,8 @@ sudo usb-wakeup-blocker.sh -p /sys/bus/usb/devices/1-2.3
 
 The configuration file is located at:
 
-```
-/etc/usb-wakeup-blocker.conf
-```
+- **Linux**: `/etc/usb-wakeup-blocker.conf`
+- **macOS**: `/usr/local/etc/usb-wakeup-blocker.conf`
 
 ### Service Arguments (systemd)
 
@@ -133,14 +145,17 @@ ARGS='-c -w "My USB Keyboard"'
 ```
 You can find device names by running:
 ```bash
+# Linux
 sudo /usr/bin/usb-wakeup-blocker.sh -v
+# macOS
+sudo /usr/local/bin/usb-wakeup-blocker.sh -v
 ```
 
 To verify a product name before adding it to the configuration file, run a dry
 run with the desired whitelist pattern:
 
 ```bash
-sudo /usr/bin/usb-wakeup-blocker.sh -d -w "My USB Keyboard"
+sudo usb-wakeup-blocker.sh -d -w "My USB Keyboard"
 ```
 
 The `-d` flag performs a trial run without modifying system settings, letting
@@ -176,7 +191,7 @@ sudo systemctl restart usb-wakeup-blocker.service
 
 To see exactly what changes the script *would* make without actually applying them, use the `-d` (dry-run) flag. Combine it with `-v` for a detailed report.
 
-Example: `sudo /usr/bin/usb-wakeup-blocker.sh -d -v`
+Example (Linux): `sudo /usr/bin/usb-wakeup-blocker.sh -d -v`
 
 ```
 --- USB Wakeup Management ---
@@ -202,14 +217,14 @@ Done.
 
 ### Recovery on Failure
 
-The `usb-wakeup-blocker.sh` script modifies the `power/wakeup` attribute of USB devices in the `/sys/bus/usb/devices/` directory. If you need to revert changes or restore devices to their original wakeup state, consider the following:
+The script modifies USB device wakeup settings. If you need to revert changes:
 
-*   **Re-enabling all devices**: To re-enable wakeup for all USB devices, you can manually write `enabled` to their `power/wakeup` files.
+*   **Linux — Re-enabling all devices**: Write `enabled` to each device's `power/wakeup` file:
     ```bash
     for i in /sys/bus/usb/devices/*/power/wakeup; do echo enabled | sudo tee $i; done
     ```
-    *Note: This command will re-enable wakeup for ALL USB devices, including those you might have intentionally blocked.*
-*   **Uninstalling the service**: If you wish to completely remove the `usb-wakeup-blocker` service and its configuration, use the `uninstall.sh` script. This will stop the service and remove its files, but will *not* automatically revert the `power/wakeup` states of individual devices. You may need to manually re-enable devices as described above after uninstallation.
+*   **macOS — Re-enabling all devices**: Remove the wakeup overrides by rebooting. The IOKit overrides are not persistent across reboots unless the launchd daemon is loaded.
+*   **Uninstalling the service**: Use the `uninstall.sh` script. This will stop the service and remove its files, but will *not* automatically revert wakeup states on Linux. A reboot is recommended.
 
 
 ## Uninstallation
@@ -231,10 +246,9 @@ sudo ./uninstall.sh
 
 Run `./uninstall.sh --help` to see available options.
 
-Removes:
-- Installed script
-- systemd service file
-- Configuration file
+On **Linux**, removes: script, systemd service, udev rules, and configuration file.
+
+On **macOS**, removes: script, IOKit helper, launchd daemon, and configuration file.
 
 Neither method reverts the `power/wakeup` state of devices that were already
 changed — see [Recovery on Failure](#recovery-on-failure).
@@ -244,11 +258,14 @@ changed — see [Recovery on Failure](#recovery-on-failure).
 
 ### Common Issues & Solutions
 
-| Problem | Cause | Solution |
-|---------|-------|----------|
-| `lsusb: command not found` | `usbutils` not installed (optional, but improves device detection) | Fedora: `sudo dnf install usbutils` <br> Debian/Ubuntu: `sudo apt install usbutils` |
-| No devices listed in verbose mode | Script run without `sudo` | Run with `sudo` |
-| Settings revert after reboot | Service not enabled | `sudo systemctl enable usb-wakeup-blocker.service` |
+| Problem | Platform | Cause | Solution |
+|---------|----------|-------|----------|
+| `lsusb: command not found` | Linux | `usbutils` not installed (optional, but improves device detection) | Fedora: `sudo dnf install usbutils` / Debian/Ubuntu: `sudo apt install usbutils` |
+| `bash 4+ is required` | macOS | System bash is 3.2 | `brew install bash` |
+| `C compiler (cc) not found` | macOS | Xcode CLI tools missing | `xcode-select --install` |
+| No devices listed in verbose mode | Both | Script run without `sudo` | Run with `sudo` |
+| Settings revert after reboot | Linux | Service not enabled | `sudo systemctl enable usb-wakeup-blocker.service` |
+| Settings revert after reboot | macOS | Daemon not loaded | `sudo launchctl load -w /Library/LaunchDaemons/com.usb-wakeup-blocker.plist` |
 
 
 ## Development & Testing
