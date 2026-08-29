@@ -185,6 +185,10 @@ jobs:
     name: rpm build (${{ matrix.distro }})
     runs-on: ubuntu-latest
     container: ${{ matrix.image }}
+    # rpmbuild derives %_topdir from $HOME, which differs between a container
+    # job and a local shell. Pin it so both steps agree on where things land.
+    env:
+      RPM_TOPDIR: /tmp/rpmbuild
     strategy:
       fail-fast: false
       matrix:
@@ -216,16 +220,16 @@ jobs:
         run: |
           set -euo pipefail
           version=$(rpmspec -q --qf '%{version}\n' usb-wakeup-blocker.spec | head -n1)
-          mkdir -p /root/rpmbuild/SOURCES /root/rpmbuild/SPECS
+          mkdir -p "$RPM_TOPDIR/SOURCES" "$RPM_TOPDIR/SPECS"
           git archive --format=tar --prefix="usb-wakeup-blocker-${version}/" HEAD \
-            | gzip > "/root/rpmbuild/SOURCES/usb-wakeup-blocker-${version}.tar.gz"
-          cp usb-wakeup-blocker.spec /root/rpmbuild/SPECS/
-          rpmbuild -bb /root/rpmbuild/SPECS/usb-wakeup-blocker.spec
+            | gzip > "$RPM_TOPDIR/SOURCES/usb-wakeup-blocker-${version}.tar.gz"
+          cp usb-wakeup-blocker.spec "$RPM_TOPDIR/SPECS/"
+          rpmbuild --define "_topdir $RPM_TOPDIR" -bb "$RPM_TOPDIR/SPECS/usb-wakeup-blocker.spec"
 
       - name: Install the RPM and check the payload
         run: |
           set -euo pipefail
-          rpm=$(find /root/rpmbuild/RPMS -name '*.rpm' | head -n1)
+          rpm=$(find "$RPM_TOPDIR/RPMS" -name '*.rpm' | head -n1)
           echo "built: $rpm"
           # The container images set tsflags=nodocs, which would drop the man
           # page and the license we want to assert on.
