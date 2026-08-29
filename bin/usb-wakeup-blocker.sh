@@ -51,8 +51,16 @@ PLATFORM="${PLATFORM:-$(uname -s)}"
 
 # ===== Test-overridable paths =====
 if [[ "$PLATFORM" == "Darwin" ]]; then
+  _script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   CONFIG_FILE="${CONFIG_FILE:-/usr/local/etc/usb-wakeup-blocker.conf}"
-  USB_WAKEUP_HELPER="${USB_WAKEUP_HELPER:-/usr/local/bin/usb-wakeup-helper}"
+  if [[ -z "${USB_WAKEUP_HELPER:-}" ]]; then
+    if [[ -x "$_script_dir/usb-wakeup-helper" ]]; then
+      USB_WAKEUP_HELPER="$_script_dir/usb-wakeup-helper"
+    else
+      USB_WAKEUP_HELPER="/usr/local/bin/usb-wakeup-helper"
+    fi
+  fi
+  unset _script_dir
 else
   CONFIG_FILE="${CONFIG_FILE:-/etc/usb-wakeup-blocker.conf}"
   USB_DEVICES_GLOB="${USB_DEVICES_GLOB:-/sys/bus/usb/devices/*}"
