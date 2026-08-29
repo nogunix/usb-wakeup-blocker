@@ -30,12 +30,16 @@ machine.
 
 | Your system | Install with | Jump to |
 |-------------|--------------|---------|
-| **Fedora** / RHEL / CentOS Stream | `dnf` (COPR package) | [Fedora](#fedora-dnf) |
+| **Fedora** / **RHEL** / **CentOS Stream** / Rocky / AlmaLinux | `dnf` (COPR package) | [dnf](#fedora-rhel-centos-stream-dnf) |
 | **macOS** | `brew` (Homebrew tap) | [macOS](#macos-homebrew) |
 | Debian / Ubuntu / Arch / any other systemd distro | `install.sh` from source | [Other Linux](#other-linux-from-source) |
 | macOS, without Homebrew | `install.sh` from source | [macOS from source](#macos-from-source) |
 
-### Fedora (`dnf`)
+### Fedora, RHEL, CentOS Stream (`dnf`)
+
+The [COPR repository](https://copr.fedorainfracloud.org/coprs/nogunix/usb-wakeup-blocker/)
+carries builds for **Fedora 43/44** and for **EL 9 / EL 10** — the latter covers
+RHEL, CentOS Stream, Rocky Linux and AlmaLinux, on `x86_64` and `aarch64`.
 
 ```bash
 sudo dnf copr enable nogunix/usb-wakeup-blocker
@@ -50,7 +54,12 @@ sudo usb-wakeup-blocker.sh -l
 ```
 
 Updates arrive with the rest of the system via `sudo dnf upgrade`.
-Everything the package needs (`systemd`, `usbutils`) is pulled in as a dependency.
+Everything the package needs (`systemd`, `usbutils`) is pulled in as a
+dependency, and on RHEL-family systems all of it lives in BaseOS — **EPEL is
+not required**.
+
+On a minimal RHEL install `dnf copr` may be missing; add the plugin first with
+`sudo dnf install dnf-plugins-core`.
 
 ### macOS (Homebrew)
 
@@ -131,10 +140,11 @@ Skip this if you installed via `dnf` or `brew` — those handle it for you.
 Installing `usbutils`: `sudo dnf install usbutils` (Fedora / RHEL / CentOS
 Stream) or `sudo apt install usbutils` (Debian / Ubuntu).
 
-**CI tested on:** Fedora 43 · Fedora 44 · Ubuntu 24.04 · Ubuntu 26.04
-(every push runs the unit tests and an install/uninstall check against real
-systemd on each of them). Other systemd-based distributions should work, but
-are not covered by CI.
+**CI tested on:** Fedora 43 · Fedora 44 · CentOS Stream 9 · CentOS Stream 10 ·
+Ubuntu 24.04 · Ubuntu 26.04. Every push runs the unit tests on all of them, an
+install/uninstall check against real systemd on Fedora and Ubuntu, and an RPM
+build plus package install check on Fedora and CentOS Stream. Other
+systemd-based distributions should work, but are not covered by CI.
 
 ### macOS
 
@@ -273,7 +283,7 @@ The script modifies USB device wakeup settings. If you need to revert changes:
 
 Use the counterpart of the installation method you chose.
 
-### Installed with `dnf` (Fedora / COPR)
+### Installed with `dnf` (Fedora / RHEL / CentOS Stream — COPR)
 
 ```bash
 sudo dnf remove usb-wakeup-blocker

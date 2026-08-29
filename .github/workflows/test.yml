@@ -20,6 +20,10 @@ jobs:
             image: fedora:43
           - distro: Fedora 44
             image: fedora:44
+          - distro: CentOS Stream 9
+            image: quay.io/centos/centos:stream9
+          - distro: CentOS Stream 10
+            image: quay.io/centos/centos:stream10
           - distro: Ubuntu 24.04
             image: ubuntu:24.04
           - distro: Ubuntu 26.04
@@ -32,7 +36,9 @@ jobs:
       - name: Install test dependencies
         run: |
           if command -v dnf >/dev/null 2>&1; then
-            dnf -y install --setopt=install_weak_deps=False \
+            # --allowerasing: CentOS Stream ships curl-minimal, which conflicts
+            # with the full curl package pulled in here.
+            dnf -y install --setopt=install_weak_deps=False --allowerasing \
               bash git curl tar gzip findutils diffutils which procps-ng shadow-utils
           else
             export DEBIAN_FRONTEND=noninteractive
@@ -170,6 +176,70 @@ jobs:
       - name: Run ShellCheck
         run: |
           find . -name "*.sh" -print0 | xargs -0 shellcheck
+
+  # The COPR package is built for Fedora and for EL 9 / EL 10 (RHEL, CentOS
+  # Stream, Rocky, AlmaLinux). Build the spec on each of those to catch a
+  # macro or dependency that only exists on one family, then install the
+  # resulting RPM to check the file layout and the scriptlets.
+  rpm:
+    name: rpm build (${{ matrix.distro }})
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: Fedora 43
+            image: fedora:43
+          - distro: Fedora 44
+            image: fedora:44
+          - distro: CentOS Stream 9
+            image: quay.io/centos/centos:stream9
+          - distro: CentOS Stream 10
+            image: quay.io/centos/centos:stream10
+    steps:
+      # Must run before actions/checkout so that git is available.
+      - name: Install build dependencies
+        run: |
+          dnf -y install --setopt=install_weak_deps=False --allowerasing \
+            rpm-build rpmdevtools systemd-rpm-macros git tar gzip
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Mark workspace as a safe git directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      # Source0 is the GitHub tag tarball, so reproduce its layout from the
+      # checkout rather than downloading a published release.
+      - name: Build the RPM
+        run: |
+          set -euo pipefail
+          version=$(rpmspec -q --qf '%{version}\n' usb-wakeup-blocker.spec | head -n1)
+          mkdir -p /root/rpmbuild/SOURCES /root/rpmbuild/SPECS
+          git archive --format=tar --prefix="usb-wakeup-blocker-${version}/" HEAD \
+            | gzip > "/root/rpmbuild/SOURCES/v${version}.tar.gz"
+          cp usb-wakeup-blocker.spec /root/rpmbuild/SPECS/
+          rpmbuild -bb /root/rpmbuild/SPECS/usb-wakeup-blocker.spec
+
+      - name: Install the RPM and check the payload
+        run: |
+          set -euo pipefail
+          rpm=$(find /root/rpmbuild/RPMS -name '*.rpm' | head -n1)
+          echo "built: $rpm"
+          dnf -y install --allowerasing "$rpm"
+
+          test -x /usr/bin/usb-wakeup-blocker.sh
+          test -f /usr/lib/systemd/system/usb-wakeup-blocker.service
+          test -f /usr/lib/udev/rules.d/99-usb-wakeup-blocker.rules
+          test -f /etc/usb-wakeup-blocker.conf
+          test -f /usr/share/bash-completion/completions/usb-wakeup-blocker
+          test -f /usr/share/zsh/site-functions/_usb-wakeup-blocker
+
+          SKIP_ROOT_CHECK=1 /usr/bin/usb-wakeup-blocker.sh -h >/dev/null
+
+          dnf -y remove usb-wakeup-blocker
+          test ! -e /usr/bin/usb-wakeup-blocker.sh
 
   # End-to-end install/uninstall against a real systemd instance, on every
   # supported distribution.
