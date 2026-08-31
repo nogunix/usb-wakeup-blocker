@@ -30,9 +30,7 @@ machine.
 | Your system | Install with | Jump to |
 |-------------|--------------|---------|
 | **Fedora** / **RHEL** / **CentOS Stream** / Rocky / AlmaLinux | `dnf` (COPR package) | [dnf](#fedora-rhel-centos-stream-dnf) |
-| **macOS** | `brew` (Homebrew tap) | [macOS](#macos-homebrew) |
 | Debian / Ubuntu / Arch / any other systemd distro | `install.sh` from source | [Other Linux](#other-linux-from-source) |
-| macOS, without Homebrew | `install.sh` from source | [macOS from source](#macos-from-source) |
 
 ### Fedora, RHEL, CentOS Stream (`dnf`)
 
@@ -61,24 +59,6 @@ not required**.
 On a minimal RHEL install `dnf copr` may be missing; add the plugin first with
 `sudo dnf install dnf-plugins-core`.
 
-### macOS (Homebrew)
-
-```bash
-brew tap nogunix/tap
-brew install usb-wakeup-blocker
-sudo brew services start usb-wakeup-blocker
-```
-
-Check that it worked:
-
-```bash
-sudo usb-wakeup-blocker.sh -l
-```
-
-Updates come with `brew upgrade usb-wakeup-blocker`.
-Homebrew installs the required bash 4+ for you; the service then runs as a
-persistent **launchd** daemon that disables USB remote wakeup before each sleep.
-
 ### Other Linux (from source)
 
 This is the path for Debian/Ubuntu and every other systemd distribution — no
@@ -106,28 +86,9 @@ configuration file, and the bash/zsh completions into `/usr`. To update,
 `git pull` and re-run `sudo ./install.sh`; your existing
 `/etc/usb-wakeup-blocker.conf` is left untouched.
 
-### macOS (from source)
-
-Requirements: **bash 4+** (macOS ships 3.2) and the **Xcode Command Line
-Tools**, used to compile the IOKit helper.
-
-```bash
-brew install bash
-xcode-select --install                  # if not already installed
-
-git clone https://github.com/nogunix/usb-wakeup-blocker.git
-cd usb-wakeup-blocker
-sudo ./install.sh
-sudo launchctl load -w /Library/LaunchDaemons/com.usb-wakeup-blocker.plist
-```
-
-The install script compiles the IOKit helper and places everything under
-`/usr/local`.
-
-
 ## Requirements in detail
 
-Skip this if you installed via `dnf` or `brew` — those handle it for you.
+Skip this if you installed via `dnf` — it handles dependencies for you.
 
 | Requirement | Required? | Notes |
 |-------------|-----------|-------|
@@ -312,14 +273,6 @@ Use the counterpart of the installation method you chose.
 ```bash
 sudo dnf remove usb-wakeup-blocker
 sudo dnf copr disable nogunix/usb-wakeup-blocker
-```
-
-### Installed with `brew` (macOS)
-
-```bash
-sudo brew services stop usb-wakeup-blocker
-brew uninstall usb-wakeup-blocker
-brew untap nogunix/tap    # optional
 ```
 
 ### Installed from source (`install.sh`)
