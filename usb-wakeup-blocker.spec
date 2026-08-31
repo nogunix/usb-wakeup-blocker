@@ -1,5 +1,5 @@
 Name:           usb-wakeup-blocker
-Version:        1.1.2
+Version:        2.0.0
 Release:        1%{?dist}
 Summary:        Control which USB devices may wake the system from sleep
 
@@ -78,6 +78,10 @@ udevadm control --reload-rules || :
 %{_datadir}/zsh/site-functions/_%{name}
 
 %changelog
+* Mon Sep 01 2026 Nogunix <nogunix@gmail.com> - 2.0.0-1
+- Remove macOS support; the project is now Linux-only
+- Remove Homebrew integration, launchd plist, and IOKit helper
+
 * Sun Aug 30 2026 Nogunix <nogunix@gmail.com> - 1.1.2-1
 - Install the command as usb-wakeup-blocker, with usb-wakeup-blocker.sh kept
   as a compatibility symlink

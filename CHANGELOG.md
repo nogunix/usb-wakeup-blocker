@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.0.0
+- **Breaking**: Removed macOS support. The project is now Linux-only.
+- Removed Homebrew integration, launchd plist, IOKit helper, and `--daemon` option.
+- Removed macOS-specific tests and CI job.
+
 ## v1.1.2
 - Added a man page (`usb-wakeup-blocker(1)`).
 - The RPM now installs the command as `usb-wakeup-blocker`; `usb-wakeup-blocker.sh` remains as a compatibility symlink.
