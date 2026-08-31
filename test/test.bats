@@ -34,7 +34,6 @@ setup() {
     # 2) Override script's file paths with environment variables (USB only)
     export USB_DEVICES_GLOB="${MOCK_SYS_PATH}/*"
     export SKIP_ROOT_CHECK=1
-    export PLATFORM=Linux
 
     # 3) Create a mock 'lsusb' command (and prepend its dir to PATH)
     cat > "$MOCK_BIN_PATH/lsusb" <<'EOF'

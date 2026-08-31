@@ -143,7 +143,7 @@ get_device_info() {
 
   # 2) Fallback to lsusb -v for more detailed detection if needed
   # We only call lsusb if we haven't identified both or if product/vendor is still missing
-  if [[ "$is_mouse" == "false" || "$is_keyboard" == "false" || "$product_name" == "(unknown product)" ]]; then
+  if [[ "$is_mouse" == "false" || "$is_keyboard" == "false" || "$product_name" == "(unknown product)" || -z "$vendor_name" ]]; then
     if [[ -f "$device_dir/busnum" && -f "$device_dir/devnum" ]]; then
       busnum="$(<"$device_dir/busnum")"
       devnum="$(<"$device_dir/devnum")"
