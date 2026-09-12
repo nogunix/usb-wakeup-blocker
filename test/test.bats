@@ -41,8 +41,6 @@ setup() {
 # Usage in script: lsusb -v -s BUS:DEV, or lsusb -v -d VID:PID when the
 # device exposes no busnum/devnum.
 # Here, $1='-v', $2='-s'|'-d', $3='BUS:DEV'|'VID:PID'
-# Record every invocation when the test asks for it (used by the cache test).
-[ -n "${LSUSB_CALL_LOG:-}" ] && echo "$*" >> "$LSUSB_CALL_LOG"
 case "$2" in
     -d)
         case "$3" in
@@ -406,30 +404,16 @@ create_lsusb_only_device() {
     assert_output --partial "(unknown vendor)"
 }
 
-@test "get_device_info: second lookup is served from the cache" {
-    export LSUSB_CALL_LOG="$MOCK_ROOT/lsusb-calls.log"
-    : > "$LSUSB_CALL_LOG"
-
-    # Sourcing the script only defines its functions; call get_device_info
-    # twice in the same shell so the cache survives between the calls.
-    # Redirect instead of capturing with $(...): a command substitution would
-    # run get_device_info in a subshell, where the cache it fills is lost.
+@test "get_device_info: returns the documented tab-separated fields" {
+    # Sourcing the script only defines its functions, so the helper can be
+    # called directly to pin down its return format.
     run bash -c '
         source "$1"
-        get_device_info "$2" > "$3"
-        get_device_info "$2" > "$4"
-        first="$(cat "$3")"
-        second="$(cat "$4")"
-        [[ "$first" == "$second" ]] || { echo "cache returned different data" >&2; exit 1; }
-        printf "%s\n" "$second"
-    ' _ "$TEST_SCRIPT_PATH" "$MOCK_SYS_PATH/usb4" "$MOCK_ROOT/first.out" "$MOCK_ROOT/second.out"
+        get_device_info "$2" | cat -A
+    ' _ "$TEST_SCRIPT_PATH" "$MOCK_SYS_PATH/usb1"
     assert_success
-    assert_output --partial "Other Device"
-
-    # The first call queried lsusb; the cached one must not have.
-    assert_equal "$(wc -l < "$LSUSB_CALL_LOG")" "1"
-
-    unset LSUSB_CALL_LOG
+    # is_mouse \t is_keyboard \t product_name \t vendor_name
+    assert_output "true^Ifalse^IMouse Device^IVendor 1\$"
 }
 
 @test "Config lowercase whitelist_patterns as a quoted string" {

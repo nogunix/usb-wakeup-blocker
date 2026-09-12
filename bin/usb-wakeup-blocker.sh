@@ -27,7 +27,7 @@
 # Re-exec with bash if needed (POSIX-safe)
 [ -n "${BASH_VERSION:-}" ] || exec /usr/bin/env bash "$0" "$@"
 
-# Require bash 4+ for associative arrays
+# Require bash 4+ for [[ -v ]] and the other modern test operators used below
 if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
   echo "ERROR: bash 4+ is required." >&2
   exit 1
@@ -105,17 +105,11 @@ safe_write() {
 # is_mouse \t is_keyboard \t product_name \t vendor_name
 # - product_name … Product name used for the -w option (from sysfs's product or lsusb -v's iProduct)
 # - vendor_name … Vendor name from the end of the idVendor line in `lsusb -v`, or sysfs manufacturer
-declare -A DEVICE_INFO_CACHE
 get_device_info() {
   local device_dir="$1"
   local busnum devnum lsusb_v_output is_mouse is_keyboard product_name vendor_name
 
   is_mouse="false"; is_keyboard="false"; product_name="(unknown product)"; vendor_name=""
-
-  if [[ -v DEVICE_INFO_CACHE["$device_dir"] ]]; then
-    echo "${DEVICE_INFO_CACHE[$device_dir]}"
-    return
-  fi
 
   # 1) Try sysfs first (fast and often sufficient)
   if [[ -r "$device_dir/product" ]]; then
@@ -189,8 +183,7 @@ get_device_info() {
   [[ -n "$product_name" ]] || product_name="(unknown product)"
 
   # Join with a literal tab character ($'\t')
-  DEVICE_INFO_CACHE["$device_dir"]="${is_mouse}"$'\t'"${is_keyboard}"$'\t'"${product_name}"$'\t'"${vendor_name}"
-  echo "${DEVICE_INFO_CACHE[$device_dir]}"
+  echo "${is_mouse}"$'\t'"${is_keyboard}"$'\t'"${product_name}"$'\t'"${vendor_name}"
 }
 
 # ===== Table formatting (for -v) =====

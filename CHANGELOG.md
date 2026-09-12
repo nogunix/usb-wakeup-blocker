@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+- Removed the `DEVICE_INFO_CACHE` lookup from `get_device_info`: it could never
+  hit, because the only caller reads the function through a process
+  substitution and queries each device exactly once.
+- Extended the test suite to cover the `lsusb -v -d` fallback, the product and
+  vendor name extraction from `lsusb` output, and a lowercase
+  `whitelist_patterns` written as a quoted string.
+
 ## v2.0.0
 - **Breaking**: Removed macOS support. The project is now Linux-only.
 - Removed Homebrew integration, launchd plist, IOKit helper, and `--daemon` option.
