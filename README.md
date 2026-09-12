@@ -1,6 +1,6 @@
 [![CI](https://github.com/nogunix/usb-wakeup-blocker/actions/workflows/test.yml/badge.svg)](https://github.com/nogunix/usb-wakeup-blocker/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/nogunix/usb-wakeup-blocker/branch/main/graph/badge.svg)](https://codecov.io/gh/nogunix/usb-wakeup-blocker)
-[![GitHub release](https://img.shields.io/github/v/release/nogunix/usb-wakeup-blocker)](https://github.com/nogunix/usb-wakeup-blocker/releases/latest)
+[![GitHub tag](https://img.shields.io/github/v/tag/nogunix/usb-wakeup-blocker)](https://github.com/nogunix/usb-wakeup-blocker/tags)
 [![COPR](https://img.shields.io/badge/copr-nogunix%2Fusb--wakeup--blocker-blue)](https://copr.fedorainfracloud.org/coprs/nogunix/usb-wakeup-blocker/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/nogunix/usb-wakeup-blocker/blob/main/LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux-lightgrey)](https://github.com/nogunix/usb-wakeup-blocker)
