@@ -38,18 +38,35 @@ setup() {
     # 3) Create a mock 'lsusb' command (and prepend its dir to PATH)
     cat > "$MOCK_BIN_PATH/lsusb" <<'EOF'
 #!/bin/sh
-# Usage in script: lsusb -v -s BUS:DEV
-# Here, $1='-v', $2='-s', $3='BUS:DEV'
-case "$3" in
-    "1:1") echo "iProduct 1 Mouse Device"
-           echo "bInterfaceProtocol 2 Mouse" ;;
-    "1:2") echo "iProduct 2 Keyboard Device"
-           echo "bInterfaceProtocol 1 Keyboard" ;;
-    "1:3") echo "iProduct 3 Combo Device"
-           echo "bInterfaceProtocol 1 Keyboard"
-           echo "bInterfaceProtocol 2 Mouse" ;;
-    "1:4") echo "iProduct 4 Other Device" ;;
-    *) echo "iProduct (unknown product)" ;;
+# Usage in script: lsusb -v -s BUS:DEV, or lsusb -v -d VID:PID when the
+# device exposes no busnum/devnum.
+# Here, $1='-v', $2='-s'|'-d', $3='BUS:DEV'|'VID:PID'
+# Record every invocation when the test asks for it (used by the cache test).
+[ -n "${LSUSB_CALL_LOG:-}" ] && echo "$*" >> "$LSUSB_CALL_LOG"
+case "$2" in
+    -d)
+        case "$3" in
+            # A device whose identity is only available from lsusb: no
+            # product/manufacturer and no interface directories in sysfs.
+            "1d6b:0002") echo "  idVendor           0x1d6b Acme Corp"
+                         echo "  iProduct           2 Wireless Combo"
+                         echo "      bInterfaceProtocol      1 Keyboard"
+                         echo "      bInterfaceProtocol      2 Mouse" ;;
+        esac
+        ;;
+    *)
+        case "$3" in
+            "1:1") echo "iProduct 1 Mouse Device"
+                   echo "bInterfaceProtocol 2 Mouse" ;;
+            "1:2") echo "iProduct 2 Keyboard Device"
+                   echo "bInterfaceProtocol 1 Keyboard" ;;
+            "1:3") echo "iProduct 3 Combo Device"
+                   echo "bInterfaceProtocol 1 Keyboard"
+                   echo "bInterfaceProtocol 2 Mouse" ;;
+            "1:4") echo "iProduct 4 Other Device" ;;
+            *) echo "iProduct (unknown product)" ;;
+        esac
+        ;;
 esac
 EOF
     chmod +x "$MOCK_BIN_PATH/lsusb"
@@ -344,3 +361,112 @@ EOF
     assert_equal "$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")" "$initial_usb1"
 }
 
+
+# Creates a device that sysfs describes only by vendor/product ID: no
+# busnum/devnum, no product/manufacturer and no interface directories, so
+# every attribute has to come from `lsusb -v -d VID:PID`.
+create_lsusb_only_device() {
+    local name="$1" state="$2" vid="$3" pid="$4"
+    mkdir -p "$MOCK_SYS_PATH/$name/power"
+    echo "$state" > "$MOCK_SYS_PATH/$name/power/wakeup"
+    echo "$vid" > "$MOCK_SYS_PATH/$name/idVendor"
+    echo "$pid" > "$MOCK_SYS_PATH/$name/idProduct"
+}
+
+@test "lsusb -d fallback: identifies a device that has no busnum/devnum" {
+    create_lsusb_only_device "usb5" "enabled" "1d6b" "0002"
+
+    run "$TEST_SCRIPT_PATH" -m -v -p "$MOCK_SYS_PATH/usb5"
+    assert_success
+
+    # Product and vendor names come from iProduct/idVendor in the lsusb output.
+    assert_output --partial "Wireless Combo"
+    assert_output --partial "Acme Corp"
+    # Mouse and keyboard are detected from the lsusb protocol lines alone.
+    assert_output --partial "disable"
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb5/power/wakeup")" "disabled"
+}
+
+@test "lsusb -d fallback: whitelist matches the lsusb product name" {
+    create_lsusb_only_device "usb5" "enabled" "1d6b" "0002"
+
+    run "$TEST_SCRIPT_PATH" -c -w "Wireless Combo" -p "$MOCK_SYS_PATH/usb5"
+    assert_success
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb5/power/wakeup")" "enabled"
+}
+
+@test "Unknown device: falls back to placeholder product and vendor names" {
+    # No idVendor/idProduct either, so lsusb is never consulted for this one.
+    mkdir -p "$MOCK_SYS_PATH/usb6/power"
+    echo enabled > "$MOCK_SYS_PATH/usb6/power/wakeup"
+
+    run "$TEST_SCRIPT_PATH" -l -p "$MOCK_SYS_PATH/usb6"
+    assert_success
+    assert_output --partial "(unknown product)"
+    assert_output --partial "(unknown vendor)"
+}
+
+@test "get_device_info: second lookup is served from the cache" {
+    export LSUSB_CALL_LOG="$MOCK_ROOT/lsusb-calls.log"
+    : > "$LSUSB_CALL_LOG"
+
+    # Sourcing the script only defines its functions; call get_device_info
+    # twice in the same shell so the cache survives between the calls.
+    # Redirect instead of capturing with $(...): a command substitution would
+    # run get_device_info in a subshell, where the cache it fills is lost.
+    run bash -c '
+        source "$1"
+        get_device_info "$2" > "$3"
+        get_device_info "$2" > "$4"
+        first="$(cat "$3")"
+        second="$(cat "$4")"
+        [[ "$first" == "$second" ]] || { echo "cache returned different data" >&2; exit 1; }
+        printf "%s\n" "$second"
+    ' _ "$TEST_SCRIPT_PATH" "$MOCK_SYS_PATH/usb4" "$MOCK_ROOT/first.out" "$MOCK_ROOT/second.out"
+    assert_success
+    assert_output --partial "Other Device"
+
+    # The first call queried lsusb; the cached one must not have.
+    assert_equal "$(wc -l < "$LSUSB_CALL_LOG")" "1"
+
+    unset LSUSB_CALL_LOG
+}
+
+@test "Config lowercase whitelist_patterns as a quoted string" {
+    config_file="$BATS_TMPDIR/uwb-lower-string.conf"
+    cat > "$config_file" <<'EOF'
+MODE=all
+whitelist_patterns='"Mouse Device" "Keyboard Device"'
+EOF
+    export CONFIG_FILE="$config_file"
+
+    run "$TEST_SCRIPT_PATH"
+    assert_success
+
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")" "enabled"   # Whitelisted
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb2/power/wakeup")" "enabled"   # Whitelisted
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb3/power/wakeup")" "disabled"
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb4/power/wakeup")" "disabled"
+
+    rm -f "$config_file"
+    unset CONFIG_FILE
+}
+
+@test "Missing argument for -p: should fail with error" {
+    run "$TEST_SCRIPT_PATH" -p
+    assert_failure
+    assert_output --partial "ERROR: -p requires a non-empty argument"
+}
+
+@test "Long options (--list, --path, --help) behave like the short ones" {
+    initial_usb1="$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")"
+
+    run "$TEST_SCRIPT_PATH" --list --path "$MOCK_SYS_PATH/usb1"
+    assert_success
+    assert_output --partial "usb1"
+    assert_equal "$(cat "$MOCK_SYS_PATH/usb1/power/wakeup")" "$initial_usb1"
+
+    run "$TEST_SCRIPT_PATH" --help
+    assert_success
+    assert_output --partial "Usage: usb-wakeup-blocker.sh"
+}
