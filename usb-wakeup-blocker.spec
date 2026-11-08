@@ -78,7 +78,7 @@ udevadm control --reload-rules || :
 %{_datadir}/zsh/site-functions/_%{name}
 
 %changelog
-* Mon Sep 01 2026 Nogunix <nogunix@gmail.com> - 2.0.0-1
+* Tue Sep 01 2026 Nogunix <nogunix@gmail.com> - 2.0.0-1
 - Remove macOS support; the project is now Linux-only
 - Remove Homebrew integration, launchd plist, and IOKit helper
 

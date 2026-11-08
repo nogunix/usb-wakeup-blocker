@@ -20,6 +20,8 @@ jobs:
             image: fedora:43
           - distro: Fedora 44
             image: fedora:44
+          - distro: Fedora 45
+            image: fedora:45
           - distro: CentOS Stream 9
             image: quay.io/centos/centos:stream9
           - distro: CentOS Stream 10
@@ -170,6 +172,8 @@ jobs:
             image: fedora:43
           - distro: Fedora 44
             image: fedora:44
+          - distro: Fedora 45
+            image: fedora:45
           - distro: CentOS Stream 9
             image: quay.io/centos/centos:stream9
           - distro: CentOS Stream 10
@@ -246,6 +250,10 @@ jobs:
             image: jrei/systemd-fedora:43
           - distro: Fedora 44
             image: jrei/systemd-fedora:44
+          # jrei/systemd-fedora has no :45 tag yet, so build an equivalent
+          # image (the stock image plus systemd as PID 1) in the job.
+          - distro: Fedora 45
+            base: fedora:45
           - distro: Ubuntu 24.04
             image: jrei/systemd-ubuntu:24.04
           - distro: Ubuntu 26.04
@@ -254,10 +262,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Build systemd image
+        if: matrix.base
+        shell: bash
+        env:
+          BASE: ${{ matrix.base }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' \
+            "FROM $BASE" \
+            'RUN dnf -y install --setopt=install_weak_deps=False systemd && dnf clean all' \
+            'CMD ["/sbin/init"]' \
+            | docker build -t local/systemd-image -
+
       - name: Test install/uninstall in systemd container
         shell: bash
         env:
-          IMAGE: ${{ matrix.image }}
+          IMAGE: ${{ matrix.image || 'local/systemd-image' }}
         run: |
           set -euo pipefail
 

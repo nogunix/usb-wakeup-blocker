@@ -35,7 +35,7 @@ machine.
 ### Fedora, RHEL, CentOS Stream (`dnf`)
 
 The [COPR repository](https://copr.fedorainfracloud.org/coprs/nogunix/usb-wakeup-blocker/)
-carries builds for **Fedora 43/44** and for **EL 9 / EL 10** — the latter covers
+carries builds for **Fedora 43/44/45** and for **EL 9 / EL 10** — the latter covers
 RHEL, CentOS Stream, Rocky Linux and AlmaLinux. Every one of them is built for
 both `x86_64` and `aarch64`.
 
@@ -99,8 +99,8 @@ Skip this if you installed via `dnf` — it handles dependencies for you.
 Installing `usbutils`: `sudo dnf install usbutils` (Fedora / RHEL / CentOS
 Stream) or `sudo apt install usbutils` (Debian / Ubuntu).
 
-**CI tested on:** Fedora 43 · Fedora 44 · CentOS Stream 9 · CentOS Stream 10 ·
-Ubuntu 24.04 · Ubuntu 26.04. Every push runs the unit tests on all of them, an
+**CI tested on:** Fedora 43 · Fedora 44 · Fedora 45 · CentOS Stream 9 ·
+CentOS Stream 10 · Ubuntu 24.04 · Ubuntu 26.04. Every push runs the unit tests on all of them, an
 install/uninstall check against real systemd on Fedora and Ubuntu, and an RPM
 build plus package install check on Fedora and CentOS Stream. Other
 systemd-based distributions should work, but are not covered by CI.

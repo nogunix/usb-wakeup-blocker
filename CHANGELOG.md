@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Support Fedora 45: added to the CI matrix for the unit tests, the RPM
+  build and the install/uninstall check against real systemd.
 - Removed the `DEVICE_INFO_CACHE` lookup from `get_device_info`: it could never
   hit, because the only caller reads the function through a process
   substitution and queries each device exactly once.
