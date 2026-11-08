@@ -1,8 +1,12 @@
 # Changelog
 
-## Unreleased
+## v2.0.1
 - Support Fedora 45: added to the CI matrix for the unit tests, the RPM
-  build and the install/uninstall check against real systemd.
+  build and the install/uninstall check against real systemd, and to the
+  COPR builds.
+- Fixed the sysfs path skipping the `lsusb` fallback when a device exposes a
+  product name but no vendor name, leaving the vendor column empty.
+- Fixed a stale `/usr/local/bin` path in the configuration file comment.
 - Removed the `DEVICE_INFO_CACHE` lookup from `get_device_info`: it could never
   hit, because the only caller reads the function through a process
   substitution and queries each device exactly once.

@@ -1,5 +1,5 @@
 Name:           usb-wakeup-blocker
-Version:        2.0.0
+Version:        2.0.1
 Release:        1%{?dist}
 Summary:        Control which USB devices may wake the system from sleep
 
@@ -78,6 +78,11 @@ udevadm control --reload-rules || :
 %{_datadir}/zsh/site-functions/_%{name}
 
 %changelog
+* Sun Nov 08 2026 Nogunix <nogunix@gmail.com> - 2.0.1-1
+- Build for Fedora 45
+- Fall back to lsusb when sysfs provides no vendor name
+- Fix a stale path in the configuration file comment
+
 * Tue Sep 01 2026 Nogunix <nogunix@gmail.com> - 2.0.0-1
 - Remove macOS support; the project is now Linux-only
 - Remove Homebrew integration, launchd plist, and IOKit helper
