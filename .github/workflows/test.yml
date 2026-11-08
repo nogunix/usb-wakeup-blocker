@@ -41,7 +41,8 @@ jobs:
             # --allowerasing: CentOS Stream ships curl-minimal, which conflicts
             # with the full curl package pulled in here.
             dnf -y install --setopt=install_weak_deps=False --allowerasing \
-              bash git curl tar gzip findutils diffutils which procps-ng shadow-utils
+              bash git curl tar gzip findutils diffutils which procps-ng shadow-utils \
+              util-linux
           else
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
